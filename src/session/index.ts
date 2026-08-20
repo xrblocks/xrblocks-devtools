@@ -23,6 +23,7 @@ export type {
   QuaternionTuple,
   SessionSimulator,
   SimulatorObjectInput,
+  ThreeObjectInput,
   SimulatorObjectRecord,
   SimulatorObjectUpdate,
   SimulatorPhysicsMode,

@@ -20,6 +20,21 @@ import {VerifierError} from './failure.js';
 /** Environment override set by the test runner's --judge-model option. */
 export const JUDGE_MODEL_ENV = 'XRBLOCKS_JUDGE_MODEL';
 
+const JUDGE_VERDICT_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    verdict: {type: 'boolean'},
+    reason: {type: 'string'},
+  },
+  required: ['verdict', 'reason'],
+  additionalProperties: false,
+};
+
+export interface JudgeVerdict {
+  verdict: boolean;
+  reason: string;
+}
+
 export type JudgeEvidence =
   | {type: 'text'; label: string; text: string}
   | {type: 'data'; label: string; value: JsonObject}
@@ -35,7 +50,8 @@ export type JudgeEvidence =
 export interface JudgeOptions {
   prompt: string;
   evidence: readonly JudgeEvidence[];
-  schema: Record<string, unknown>;
+  /** Custom schema. It must retain boolean verdict and string reason fields. */
+  schema?: Record<string, unknown>;
   model?: string;
   /** Retry limit for transient model errors. Defaults to 3. */
   maxRetries?: number;
@@ -49,17 +65,24 @@ type JudgeDependencies = {
   generateText?: typeof generateText;
 };
 
-export async function judge<T = unknown>(options: JudgeOptions): Promise<T> {
+export async function judge<T extends JudgeVerdict = JudgeVerdict>(
+  options: JudgeOptions
+): Promise<T> {
   return judgeWithSystemInstruction<T>(options, JUDGE_SYSTEM_INSTRUCTION);
 }
 
 /** @internal */
-export async function judgeWithSystemInstruction<T = unknown>(
+export async function judgeWithSystemInstruction<
+  T extends JudgeVerdict = JudgeVerdict,
+>(
   options: JudgeOptions,
   systemInstruction: string,
   dependencies: JudgeDependencies = {}
 ): Promise<T> {
   try {
+    const schema = options.schema ?? JUDGE_VERDICT_SCHEMA;
+    if (!isJsonObject(schema))
+      throw new TypeError('Judge schema must be a JSON object.');
     const content = judgeContent(options);
     const runGenerateText = dependencies.generateText ?? generateText;
     const model = await (dependencies.createModel ?? createAiModel)(
@@ -69,12 +92,17 @@ export async function judgeWithSystemInstruction<T = unknown>(
       model,
       instructions: systemInstruction,
       messages: [{role: 'user', content}],
-      output: Output.object<T>({schema: jsonSchema<T>(options.schema)}),
+      output: Output.object<T>({schema: jsonSchema<T>(schema)}),
       temperature: 0,
       maxRetries: options.maxRetries ?? DEFAULT_AI_MAX_RETRIES,
       timeout: aiTimeoutMs(options.timeoutMs),
       abortSignal: options.signal,
     });
+    if (!isJudgeVerdict(result.output)) {
+      throw new VerifierError(
+        'Judge response must contain boolean verdict and string reason fields.'
+      );
+    }
     return result.output;
   } catch (error) {
     if (error instanceof VerifierError) throw error;
@@ -96,8 +124,6 @@ export function resolveJudgeModel(model?: string): string {
 function judgeContent(options: JudgeOptions): UserContent {
   if (!options.prompt.trim())
     throw new Error('Judge prompt must not be empty.');
-  if (!isJsonObject(options.schema))
-    throw new TypeError('Judge schema must be a JSON object.');
   if (!Array.isArray(options.evidence) || options.evidence.length === 0)
     throw new Error('Judge evidence must not be empty.');
 
@@ -143,4 +169,13 @@ function judgeContent(options: JudgeOptions): UserContent {
 
 function isJsonObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function isJudgeVerdict(value: unknown): value is JudgeVerdict {
+  if (!isJsonObject(value)) return false;
+  return (
+    typeof value.verdict === 'boolean' &&
+    typeof value.reason === 'string' &&
+    value.reason.trim().length > 0
+  );
 }

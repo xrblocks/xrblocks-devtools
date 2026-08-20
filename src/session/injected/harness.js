@@ -245,7 +245,10 @@ async function addSimulatorObjects(definitions = []) {
     return [];
   }
   const manager = getSimulatorObjectsManager();
-  const records = await manager.addObjects(definitions, {
+  const materialized = await Promise.all(
+    definitions.map(materializeSimulatorObjectDefinition)
+  );
+  const records = await manager.addObjects(materialized, {
     baseUrl: location.href,
   });
 
@@ -267,6 +270,16 @@ async function addSimulatorObjects(definitions = []) {
   getCore().stepFrame?.();
   await Promise.resolve();
   return records.map(serializeSimulatorObjectRecord);
+}
+
+async function materializeSimulatorObjectDefinition(definition) {
+  if (!definition?.objectJson) return definition;
+  const three = window.THREE ?? (await import('three'));
+  const {objectJson, ...rest} = definition;
+  return {
+    ...rest,
+    object: new three.ObjectLoader().parse(objectJson),
+  };
 }
 
 async function updateSimulatorObjects(updates = []) {

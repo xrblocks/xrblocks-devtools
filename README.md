@@ -298,27 +298,19 @@ must run through an application or the XR simulator. A bare `three` import uses
 the selected checkout's Three.js dependency so the test and source share their
 class identities.
 
-Use `judge` for a structured AI evaluation of text or image evidence:
+Use `judge` for a binary AI evaluation of text or image evidence:
 
 ```ts
 import {judge} from '@xrblocks/devtools/test';
 
-const judgment = await judge<{passes: boolean; reason: string}>({
+const judgment = await judge({
   prompt: 'Does the image show a clearly visible red cube?',
   evidence: [
     {type: 'image', label: 'Final camera view', image: screenshotDataUrl},
   ],
-  schema: {
-    type: 'object',
-    properties: {
-      passes: {type: 'boolean'},
-      reason: {type: 'string'},
-    },
-    required: ['passes', 'reason'],
-  },
 });
 
-expect(judgment.passes, judgment.reason).toBe(true);
+expect(judgment.verdict, judgment.reason).toBe(true);
 ```
 
 Evidence can contain ordered `text`, `data`, and `image` items. The judge uses
@@ -326,8 +318,12 @@ an internal system instruction and deterministic Gemini output. Missing or
 invalid credentials and request failures throw `VerifierError`. The test runner
 reports these as verifier errors and does not score the candidate.
 
+Both `judge()` and `judgeTrajectory()` accept an optional JSON schema for
+additional structured fields. Custom schemas must retain the Boolean `verdict`
+and string `reason` fields.
+
 Use `judgeTrajectory` to evaluate one requirement from an `act()` result. The
-result is always a Boolean verdict with one reason:
+default result is a Boolean verdict with one reason:
 
 ```ts
 import {expect, judgeTrajectory} from '@xrblocks/devtools/test';
@@ -555,13 +551,23 @@ Objects support:
 
 1. **Local filesystem 3D models**: `file: './tests/fixtures/model.glb'` (automatically read into data URLs).
 2. **Application or remote assets**: `assetPath: './models/chair.glb'` or `https://...`.
-3. **Direct Three.js objects** (in-browser): `object: myObject3D`.
+3. **Three.js objects**: `object: makePlaceholder()`. DevTools serializes the
+   object into the browser before inserting it into the simulator.
 
 Spawned objects can declare Devtools tags, states, semantic detection labels, and physics:
 
 ```ts
+import * as THREE from 'three';
+
+function makePlaceholderPackage() {
+  return new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.2, 0.15),
+    new THREE.MeshStandardMaterial({color: 0xb8895a})
+  );
+}
+
 // Spawn simulator objects dynamically
-const [table] = await session.simulator.addObjects([
+await session.simulator.addObjects([
   {
     id: 'fixture-table',
     tag: 'fixture-table',
@@ -572,9 +578,9 @@ const [table] = await session.simulator.addObjects([
     label: 'Table',
   },
   {
-    id: 'ball-1',
-    tag: 'target-ball',
-    assetPath: './assets/ball.glb',
+    id: 'package-1',
+    tag: 'target-package',
+    object: makePlaceholderPackage(),
     state: {score: 10},
     position: [0, 1.2, -1.0],
     physics: 'dynamic',
@@ -582,16 +588,16 @@ const [table] = await session.simulator.addObjects([
 ]);
 
 // Target or inspect the spawned object immediately
-await session.lookAtTarget({tag: 'target-ball'});
-await session.reachTo('right', {tag: 'target-ball'});
-const inspection = await session.objects.inspect({tag: 'target-ball'});
+await session.lookAtTarget({tag: 'target-package'});
+await session.reachTo('right', {tag: 'target-package'});
+const inspection = await session.objects.inspect({tag: 'target-package'});
 
 // Update, query, or remove simulator objects
 await session.simulator.updateObjects([
-  {id: 'ball-1', position: [0.5, 1.2, -1.0]},
+  {id: 'package-1', position: [0.5, 1.2, -1.0]},
 ]);
 const records = await session.simulator.getObjects();
-await session.simulator.removeObjects(['ball-1']);
+await session.simulator.removeObjects(['package-1']);
 await session.simulator.clearObjects();
 ```
 

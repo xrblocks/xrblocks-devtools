@@ -128,6 +128,10 @@ export type ObjectInspection = ObjectIdentity & {
 
 export type SimulatorPhysicsMode = false | 'fixed' | 'dynamic';
 
+export type ThreeObjectInput = {
+  toJSON(): unknown;
+};
+
 export type SimulatorObjectInput = {
   id?: string;
   tag?: string;
@@ -142,7 +146,8 @@ export type SimulatorObjectInput = {
   data?: unknown;
   assetPath?: string;
   file?: string;
-  object?: unknown;
+  /** Three.js object serialized into the browser before simulator insertion. */
+  object?: ThreeObjectInput;
 };
 
 export type SimulatorObjectUpdate = {

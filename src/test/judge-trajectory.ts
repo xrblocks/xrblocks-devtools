@@ -6,9 +6,11 @@ import {
 import {agentActionDeclarations} from '../session/actions.js';
 import {VerifierError} from './failure.js';
 import {
+  isJudgeVerdict,
   judgeWithSystemInstruction,
   type JudgeEvidence,
   type JudgeOptions,
+  type JudgeVerdict,
 } from './judge.js';
 
 const MAX_TRAJECTORY_IMAGES = 6;
@@ -32,18 +34,17 @@ export interface JudgeTrajectoryOptions {
   requirement: string;
   trajectory: ActTrajectory;
   evidence?: readonly JudgeEvidence[];
+  /** Custom schema. It must retain boolean verdict and string reason fields. */
+  schema?: Record<string, unknown>;
   model?: string;
   maxRetries?: number;
   timeoutMs?: number;
   signal?: AbortSignal;
 }
 
-export interface TrajectoryVerdict {
-  verdict: boolean;
-  reason: string;
-}
+export type TrajectoryVerdict = JudgeVerdict;
 
-type JudgeFunction = <T = unknown>(
+type JudgeFunction = <T extends JudgeVerdict = JudgeVerdict>(
   options: JudgeOptions,
   systemInstruction: string
 ) => Promise<T>;
@@ -52,17 +53,19 @@ type JudgeTrajectoryDependencies = {
   judge?: JudgeFunction;
 };
 
-export function judgeTrajectory(
-  options: JudgeTrajectoryOptions
-): Promise<TrajectoryVerdict> {
-  return judgeTrajectoryWithDependencies(options);
+export function judgeTrajectory<
+  T extends TrajectoryVerdict = TrajectoryVerdict,
+>(options: JudgeTrajectoryOptions): Promise<T> {
+  return judgeTrajectoryWithDependencies<T>(options);
 }
 
 /** @internal */
-export async function judgeTrajectoryWithDependencies(
+export async function judgeTrajectoryWithDependencies<
+  T extends TrajectoryVerdict = TrajectoryVerdict,
+>(
   options: JudgeTrajectoryOptions,
   dependencies: JudgeTrajectoryDependencies = {}
-): Promise<TrajectoryVerdict> {
+): Promise<T> {
   if (!options.requirement.trim())
     throw new VerifierError('Trajectory requirement must not be empty.');
   if (!Array.isArray(options.trajectory.events))
@@ -85,7 +88,7 @@ export async function judgeTrajectoryWithDependencies(
         options.trajectory.instruction
       ),
       evidence,
-      schema: TRAJECTORY_VERDICT_SCHEMA,
+      schema: options.schema ?? TRAJECTORY_VERDICT_SCHEMA,
       model: options.model,
       maxRetries: options.maxRetries,
       timeoutMs: options.timeoutMs,
@@ -95,11 +98,11 @@ export async function judgeTrajectoryWithDependencies(
       options.trajectory.configuration.toolProfile
     );
     const result = dependencies.judge
-      ? await dependencies.judge<unknown>(request, systemInstruction)
-      : await judgeWithSystemInstruction<unknown>(request, systemInstruction);
-    if (!isTrajectoryVerdict(result))
+      ? await dependencies.judge<T>(request, systemInstruction)
+      : await judgeWithSystemInstruction<T>(request, systemInstruction);
+    if (!isJudgeVerdict(result))
       throw new VerifierError('Trajectory judge returned an invalid verdict.');
-    return {verdict: result.verdict, reason: result.reason};
+    return result;
   } catch (error) {
     if (error instanceof VerifierError) throw error;
     throw new VerifierError('Trajectory judge request failed.', {cause: error});
@@ -377,15 +380,6 @@ function boundValue(value: unknown, depth: number): unknown {
     result['...'] =
       `${entries.length - MAX_COLLECTION_ITEMS} properties omitted`;
   return result;
-}
-
-function isTrajectoryVerdict(value: unknown): value is TrajectoryVerdict {
-  const object = asObject(value);
-  return (
-    typeof object?.verdict === 'boolean' &&
-    typeof object.reason === 'string' &&
-    object.reason.trim().length > 0
-  );
 }
 
 function asObject(value: unknown): Record<string, unknown> | undefined {

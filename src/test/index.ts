@@ -1,6 +1,11 @@
 export {runTests, type AppBinding, type RunTestsOptions} from './run-tests.js';
 export {VerifierError} from './failure.js';
-export {judge, type JudgeEvidence, type JudgeOptions} from './judge.js';
+export {
+  judge,
+  type JudgeEvidence,
+  type JudgeOptions,
+  type JudgeVerdict,
+} from './judge.js';
 export {
   judgeTrajectory,
   type JudgeTrajectoryOptions,

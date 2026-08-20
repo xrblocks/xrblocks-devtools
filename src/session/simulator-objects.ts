@@ -4,9 +4,16 @@ import type {SimulatorObjectInput} from './types.js';
 
 export const MAX_SIMULATOR_OBJECT_FILE_BYTES = 50 * 1024 * 1024;
 
+export type MaterializedSimulatorObjectInput = Omit<
+  SimulatorObjectInput,
+  'file' | 'object'
+> & {
+  objectJson?: unknown;
+};
+
 export async function materializeSimulatorObjectInputs(
   definitions: SimulatorObjectInput[]
-): Promise<SimulatorObjectInput[]> {
+): Promise<MaterializedSimulatorObjectInput[]> {
   if (!Array.isArray(definitions)) {
     throw new TypeError('Simulator object definitions must be an array.');
   }
@@ -31,6 +38,17 @@ export async function materializeSimulatorObjectInputs(
         };
       }
 
+      if (def.object) {
+        const {object, ...rest} = def;
+        const objectJson = object.toJSON();
+        if (!objectJson || typeof objectJson !== 'object') {
+          throw new TypeError(
+            `Simulator object at index ${index} returned invalid Three.js JSON.`
+          );
+        }
+        return {...rest, objectJson};
+      }
+
       return {...def};
     })
   );
@@ -43,9 +61,9 @@ function validateSourceOptions(def: SimulatorObjectInput, index: number) {
     def.object !== undefined,
   ].filter(Boolean);
 
-  if (sources.length > 1) {
+  if (sources.length !== 1) {
     throw new Error(
-      `Simulator object at index ${index} must specify at most one of 'assetPath', 'file', or 'object'.`
+      `Simulator object at index ${index} must specify exactly one of 'assetPath', 'file', or 'object'.`
     );
   }
 }
