@@ -278,6 +278,36 @@ it_session(
 );
 ```
 
+Use tagged-output expectations to verify rendered and spatial results from a
+fixed frame:
+
+```ts
+import {
+  captureOutputSnapshot,
+  expectCreatedOrRemoved,
+  expectRenderedTag,
+  expectSessionHealthy,
+  expectSpecificText,
+  it_session,
+} from '@xrblocks/devtools/test';
+
+it_session('opens the settings menu', async (session) => {
+  const before = await captureOutputSnapshot(session);
+  await session.click('right');
+  const after = await captureOutputSnapshot(session);
+
+  expectCreatedOrRemoved(before, after, 'settings-menu', {created: 1});
+  expectRenderedTag(after, 'settings-menu');
+  expectSpecificText(after, 'settings-title', 'Settings');
+  expectSessionHealthy(session);
+});
+```
+
+Each snapshot records tagged IDs, transforms, bounds, material state, geometry,
+and visible text. Rendered visibility, camera-frame presence, and line of sight
+come from XR Blocks Scene Context. See
+[Tagged output expectations](docs/output-expectations.md) for all helpers.
+
 When `--xrblocks-root` is set, ordinary tests can import the selected source
 tree through `@xrblocks/source`:
 

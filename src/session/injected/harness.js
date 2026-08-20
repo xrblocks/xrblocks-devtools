@@ -168,10 +168,15 @@ function resolveNavigationPosition(target) {
   const camera = getCamera();
   const position = camera?.position?.clone?.();
   if (!position) {
-    throw new Error('XR Blocks simulator navigation requires an active camera.');
+    throw new Error(
+      'XR Blocks simulator navigation requires an active camera.'
+    );
   }
   if (Array.isArray(resolved)) {
-    if (resolved.length !== 3 || resolved.some((value) => !Number.isFinite(value))) {
+    if (
+      resolved.length !== 3 ||
+      resolved.some((value) => !Number.isFinite(value))
+    ) {
       throw new Error('Navigation position must contain three finite numbers.');
     }
     return position.fromArray(resolved);
@@ -331,6 +336,8 @@ window.__xrblocksDevtoolsRuntime = {
   findObjectsByTag,
   navigateTo,
   getDevtoolsContext,
+  captureOutputSnapshot,
+  captureOutputYawVisibility,
   addSimulatorObjects,
   updateSimulatorObjects,
   removeSimulatorObjects,

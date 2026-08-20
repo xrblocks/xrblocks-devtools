@@ -8,6 +8,7 @@ const injectedFiles = [
   'rendering.js',
   'targets.js',
   'spatial.js',
+  'outputs.js',
   'context.js',
   'readiness.js',
   'screenshot.js',

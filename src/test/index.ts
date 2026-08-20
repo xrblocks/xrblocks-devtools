@@ -29,6 +29,27 @@ export {
   type BuiltInScene,
   type SceneVariant,
 } from './authoring.js';
+export {
+  captureOutputSnapshot,
+  expectBoundedResult,
+  expectCreatedOrRemoved,
+  expectPathConnects,
+  expectRenderedTag,
+  expectRenderStateChanged,
+  expectSpatialRelation,
+  expectSpecificText,
+  expectSurfaceConformance,
+  expectTransformChanged,
+  expectVisibleFromAnyYaw,
+  type SpatialRelation,
+} from './output-expectations.js';
+export {expectSessionHealthy} from './session-expectations.js';
+export type {
+  OutputBounds,
+  OutputChangeField,
+  OutputSelector,
+  OutputSnapshot,
+} from './output-types.js';
 export type {
   AgentRunArtifact,
   EvaluationError,
