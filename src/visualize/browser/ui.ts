@@ -54,7 +54,10 @@ function stage(root: xb.UICard | xb.UIOverlay) {
 function fitPreviewCamera(root: xb.UICard) {
   const config = window.__xrblocksVisualizerConfig;
   const cardWidth = root.size.width;
-  const cardHeight = root.size.height;
+  const cardHeight =
+    root.size.height === 'auto'
+      ? cardWidth / (config.width / config.height)
+      : root.size.height;
   const verticalSizeAtOneMeter =
     Math.max(cardHeight, cardWidth / (config.width / config.height)) / 0.9;
   xb.camera.fov = (2 * Math.atan(verticalSizeAtOneMeter / 2) * 180) / Math.PI;
