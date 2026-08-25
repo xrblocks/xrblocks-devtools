@@ -22,7 +22,7 @@ describe('agent action interface', () => {
     expect(injectAudio).toHaveBeenCalledWith({text: 'open the menu'});
     expect(lookAtTarget).toHaveBeenCalledWith(
       {tag: 'submit'},
-      {speedDegreesPerSecond: 720}
+      {speedDegreesPerSecond: 360}
     );
   });
 

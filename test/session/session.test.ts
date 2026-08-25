@@ -96,14 +96,19 @@ describe('Session interface', () => {
     const invoke = vi.fn().mockResolvedValue({completed: true});
     const runtime = fakeRuntime({invoke});
     const video = fakeVideo();
+    const dependencies = fakeDependencies({runtime, video});
     const session = new XRBlocksSession(
       {
         url: 'http://example.test',
         recordVideo: {out: '/artifacts/run.mp4'},
       },
-      fakeDependencies({runtime, video})
+      dependencies
     );
     await session.start();
+
+    expect(dependencies.createRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({viewport: {width: 800, height: 600}})
+    );
 
     await session.getCamera({screenshot: true, overlayOnCamera: false});
     await session.navigateTo([1, 2, 3]);

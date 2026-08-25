@@ -229,7 +229,7 @@ export class XRBlocksSession {
         url: targetUrl,
         headless: this.config.headless ?? true,
         timeoutMs: this.config.timeoutMs ?? DEFAULT_SESSION_TIMEOUT_MS,
-        viewport: this.config.viewport ?? {width: 1280, height: 900},
+        viewport: this.config.viewport ?? {width: 800, height: 600},
         embodiedControlOptions: {
           autoPause: true,
           realTime: this.config.realTime ?? true,

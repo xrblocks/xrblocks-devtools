@@ -23,7 +23,7 @@ export type PlaywrightSessionOptions = {
   url: string;
   headless?: boolean;
   timeoutMs?: number;
-  viewport?: Viewport;
+  viewport: Viewport;
   embodiedControlImport?: string | null;
   embodiedControlOptions?: JsonObject;
   simulatorReachLimit?: boolean;
@@ -69,7 +69,7 @@ export class PlaywrightSessionAdapter {
       });
       signal?.throwIfAborted();
       const contextOptions: Parameters<Browser['newContext']>[0] = {
-        viewport: this.options.viewport ?? {width: 1280, height: 900},
+        viewport: this.options.viewport,
       };
       if (this.options.recordVideoDir) {
         contextOptions.recordVideo = {

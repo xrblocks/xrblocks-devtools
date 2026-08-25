@@ -8,21 +8,21 @@ export type SpeedConfig = {
 };
 
 export const VIEWER_MOVE_SPEED: SpeedConfig = {
-  default: 6,
-  minimum: 0.05,
-  maximum: 20,
-  units: 'meters per second',
-};
-
-export const HAND_MOVE_SPEED: SpeedConfig = {
   default: 3,
   minimum: 0.05,
   maximum: 20,
   units: 'meters per second',
 };
 
+export const HAND_MOVE_SPEED: SpeedConfig = {
+  default: 2,
+  minimum: 0.05,
+  maximum: 20,
+  units: 'meters per second',
+};
+
 export const ANGULAR_SPEED: SpeedConfig = {
-  default: 720,
+  default: 360,
   minimum: 5,
   maximum: 3600,
   units: 'degrees per second',
