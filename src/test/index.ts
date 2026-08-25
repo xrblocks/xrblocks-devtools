@@ -33,6 +33,7 @@ export {
   captureOutputSnapshot,
   expectBoundedResult,
   expectCreatedOrRemoved,
+  expectNotVisible,
   expectPathConnects,
   expectRenderedTag,
   expectRenderStateChanged,

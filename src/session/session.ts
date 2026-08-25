@@ -25,6 +25,7 @@ import {
   type SimulatorObjectInput,
   type SimulatorObjectRecord,
   type SimulatorObjectUpdate,
+  type Vec3Tuple,
   type Viewport,
 } from './types.js';
 import type {JsonObject} from '../types.js';
@@ -340,6 +341,21 @@ export class XRBlocksSession {
     return this.requireRuntime().invoke('getDevtoolsContext', options);
   }
 
+  async getPresetLocation(name: string): Promise<Vec3Tuple> {
+    const context = await this.getDevtoolsContext({locations: true});
+    const locations = context.locations as
+      Record<string, {position?: unknown}> | undefined;
+    const position = locations?.[name]?.position;
+    if (
+      !Array.isArray(position) ||
+      position.length !== 3 ||
+      !position.every((coordinate) => Number.isFinite(coordinate))
+    ) {
+      throw new Error(`Simulator preset location not found: ${name}`);
+    }
+    return [position[0], position[1], position[2]] as Vec3Tuple;
+  }
+
   getSimulatorState() {
     return this.observe('getSimulatorState');
   }
@@ -427,6 +443,12 @@ export class XRBlocksSession {
         durationMs: step.durationMs,
         control: {[normalizedHand]: {move: step.move}},
       })
+    );
+  }
+
+  teleportHand(hand: PhysicalHand, target: unknown) {
+    return this.recordAction('teleportHand', {hand, target}, () =>
+      this.requireRuntime().invoke('reachTo', handIndex(hand), target)
     );
   }
 

@@ -30,6 +30,7 @@ const sessionCommands = [
     'rotate({pitchDegrees?, yawDegrees?, rollDegrees?, speedDegreesPerSecond?})',
   ],
   ['moveHand', 'moveHand(hand, motion)'],
+  ['teleportHand', 'teleportHand(hand, target)'],
   ['rotateHand', 'rotateHand(hand, rotation)'],
   ['gesture', 'gesture(hand, pose)'],
   ['setHandPose', 'setHandPose(hand, rotations)'],

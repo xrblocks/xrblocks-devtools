@@ -338,6 +338,7 @@ window.__xrblocksDevtoolsRuntime = {
   getDevtoolsContext,
   captureOutputSnapshot,
   captureOutputYawVisibility,
+  inspectOutputSelectorVisibility,
   addSimulatorObjects,
   updateSimulatorObjects,
   removeSimulatorObjects,

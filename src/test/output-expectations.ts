@@ -89,6 +89,39 @@ export async function expectVisibleFromAnyYaw(
   }
 }
 
+export async function expectNotVisible(
+  session: XRBlocksSession,
+  target: OutputSelector,
+  options: {yaws?: number[]} = {}
+): Promise<void> {
+  const yaws = options.yaws ?? [0, 90, 180, 270];
+  const selector = normalizeSelector(target);
+  const objectVisibility = await session.invoke<{
+    exists: boolean;
+    visible: boolean;
+  }>('inspectOutputSelectorVisibility', selector);
+  if (!objectVisibility.exists || !objectVisibility.visible) return;
+  const views = await session.invoke<OutputYawView[]>(
+    'captureOutputYawVisibility',
+    selector,
+    yaws
+  );
+  const unavailable = views.find((view) => !view.visibilityAvailable);
+  if (unavailable) {
+    fail(
+      `Scene Context visibility was unavailable at yaw ${unavailable.yawDegrees}: ${unavailable.error ?? 'unknown error'}.`
+    );
+  }
+  const visibleYaws = views
+    .filter((view) => view.rendered && view.inFrustum)
+    .map((view) => view.yawDegrees);
+  if (visibleYaws.length > 0) {
+    fail(
+      `${selectorLabel(target)} was rendered in frame at yaws ${visibleYaws.join(', ')} degrees.`
+    );
+  }
+}
+
 export function expectCreatedOrRemoved(
   before: OutputSnapshot,
   after: OutputSnapshot,

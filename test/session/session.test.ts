@@ -98,6 +98,7 @@ describe('Session interface', () => {
     await session.getCamera({screenshot: true, overlayOnCamera: false});
     await session.navigateTo([1, 2, 3]);
     await session.teleportTo('Target');
+    await session.teleportHand('right', [0.2, 1.1, -0.8]);
     await session.pointTo('left', 'Target', {speedDegreesPerSecond: 90});
     await session.wait(1000);
     await session.stepFrame(2);
@@ -109,12 +110,20 @@ describe('Session interface', () => {
     expect(invoke).toHaveBeenCalledWith('pointTo', 0, 'Target', {
       velocity: Math.PI / 2,
     });
+    expect(invoke).toHaveBeenCalledWith('reachTo', 1, [0.2, 1.1, -0.8]);
     expect(invoke).toHaveBeenCalledWith('wait', 1000);
     expect(invoke).toHaveBeenCalledWith('navigateTo', [1, 2, 3]);
-    expect(video.recordAction).toHaveBeenCalledTimes(5);
+    expect(video.recordAction).toHaveBeenCalledTimes(6);
     expect(
       vi.mocked(video.recordAction).mock.calls.map(([name]) => name)
-    ).toEqual(['navigateTo', 'teleportTo', 'pointTo', 'wait', 'stepFrame']);
+    ).toEqual([
+      'navigateTo',
+      'teleportTo',
+      'teleportHand',
+      'pointTo',
+      'wait',
+      'stepFrame',
+    ]);
     expect(() => session.wait(0)).toThrow(/positive finite number/);
     await session.close();
   });

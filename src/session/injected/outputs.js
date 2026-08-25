@@ -199,6 +199,21 @@ function resolveOutputSelectorObjects(target) {
   return matches;
 }
 
+function inspectOutputSelectorVisibility(target) {
+  const targets = resolveOutputSelectorObjects(target);
+  return {
+    exists: targets.length > 0,
+    visible: targets.some(objectVisibleInScene),
+  };
+}
+
+function objectVisibleInScene(object) {
+  for (let current = object; current; current = current.parent) {
+    if (current.visible === false) return false;
+  }
+  return true;
+}
+
 function serializeRenderables(root) {
   const result = [];
   root.traverse?.((object) => {
