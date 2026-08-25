@@ -98,9 +98,7 @@ export type SessionObjects = {
 };
 
 export type SessionTarget =
-  | string
-  | [number, number, number]
-  | {tag: string; id?: string};
+  string | [number, number, number] | {tag: string; id?: string};
 
 export type SimulatorNavigationResult = {
   completed: true;
