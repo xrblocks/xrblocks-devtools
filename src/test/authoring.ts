@@ -287,7 +287,8 @@ async function runSessionTest(
           ? {
               out: videoOut,
               timelineOut,
-              fromSceneReady: true,
+              trim: true,
+              paddingMs: 500,
             }
           : undefined,
       recordAgent: {
