@@ -97,7 +97,10 @@ export type SessionObjects = {
   inspect(target: SessionTarget): Promise<ObjectInspection>;
 };
 
-export type SessionTarget = string | [number, number, number] | {tag: string};
+export type SessionTarget =
+  | string
+  | [number, number, number]
+  | {tag: string; id?: string};
 
 export type SimulatorNavigationResult = {
   completed: true;

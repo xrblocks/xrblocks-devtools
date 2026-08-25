@@ -37,7 +37,14 @@ function serializeTargetIdentity(object) {
   };
 }
 
-function resolveTaggedTarget(tag) {
+function resolveTaggedTarget(tag, runtimeId) {
+  if (runtimeId !== undefined) {
+    const object = resolveRuntimeObject(runtimeId);
+    if (devtoolsMetadata(object)?.tag !== tag) {
+      throw new Error('Tagged target ID does not match tag: ' + tag);
+    }
+    return object;
+  }
   const matches = findObjectsByTag(tag);
   if (matches.length === 0) throw new Error('Tagged target not found: ' + tag);
   if (matches.length > 1) throw new Error('Tagged target is ambiguous: ' + tag);

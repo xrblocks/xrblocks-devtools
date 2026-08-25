@@ -73,7 +73,7 @@ function requireUniqueTarget(matches, name, source) {
 function resolveTarget(target) {
   if (Array.isArray(target)) return target;
   if (target && typeof target === 'object' && typeof target.tag === 'string') {
-    return resolveTaggedTarget(target.tag);
+    return resolveTaggedTarget(target.tag, target.id);
   }
   if (typeof target !== 'string') {
     throw new Error(

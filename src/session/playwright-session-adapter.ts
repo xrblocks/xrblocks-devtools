@@ -177,8 +177,11 @@ export class PlaywrightSessionAdapter {
   }
 
   private onConsole(message: ConsoleMessage) {
+    const level = message.type();
+    if (level === 'debug') return;
+
     this.diagnostics.consoleEntries.push({
-      level: message.type(),
+      level,
       text: message.text(),
       location: message.location(),
       timestamp: new Date().toISOString(),
