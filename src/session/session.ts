@@ -238,6 +238,7 @@ export class XRBlocksSession {
         simulatorReachLimit: this.config.simulatorReachLimit,
         simulatorNavMesh: this.config.simulatorNavMesh,
         recordVideoDir: videoRecorder?.rawDir,
+        recordVideoSize: this.config.recordVideo?.size,
         signal,
         onVideoStarted: videoRecorder
           ? () => videoRecorder.markVideoStarted()

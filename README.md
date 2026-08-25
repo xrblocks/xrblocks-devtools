@@ -390,6 +390,10 @@ defaults to `false`. A session test records video only when its options include 
 simple `video` name. Each `session.act()` call records a JSONL trajectory and
 extracted observation images under the test artifact directory.
 
+Session tests can set `viewport: {width, height}` for the browser and
+`videoSize: {width, height}` for the recording. The video size defaults to the
+browser viewport.
+
 Use `scenes` to run a session test against XR Blocks SDK environments or custom
 simulator manifests. SDK environments use their display names. Manifest paths
 are relative to the application page. If `scenes` is omitted or empty, the SDK
@@ -439,15 +443,15 @@ scene/context name, a world position `[x, y, z]` in meters, or `{tag: 'name'}`.
 | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `navigateTo(target)`                | Use XR Blocks simulator navigation and navmesh constraints. Returns final position and `constrained`.                                     |
 | `teleportTo(target, options?)`      | Embodied teleport. Options include `distance` in meters (default `1.5`), `faceTarget` (default true), and `snapToGround` (default false). |
-| `move(motion)`                      | Viewer-relative meters. Speed default `1 m/s`, range `0.05–3 m/s`. Positive axes are right, up, and forward.                              |
-| `rotate(rotation)`                  | Relative degrees. Speed default `90°/s`, range `5–180°/s`. Positive pitch is up, yaw left, roll counterclockwise.                         |
-| `moveHand(hand, motion)`            | Viewer-relative meters. Speed default `0.5 m/s`, range `0.05–1.5 m/s`.                                                                    |
-| `rotateHand(hand, rotation)`        | Relative degrees. Speed default `90°/s`, range `5–180°/s`.                                                                                |
+| `move(motion)`                      | Viewer-relative meters. Speed default `6 m/s`, range `0.05–20 m/s`. Positive axes are right, up, and forward.                             |
+| `rotate(rotation)`                  | Relative degrees. Speed default `720°/s`, range `5–3600°/s`. Positive pitch is up, yaw left, roll counterclockwise.                       |
+| `moveHand(hand, motion)`            | Viewer-relative meters. Speed default `3 m/s`, range `0.05–20 m/s`.                                                                       |
+| `rotateHand(hand, rotation)`        | Relative degrees. Speed default `720°/s`, range `5–3600°/s`.                                                                              |
 | `gesture(hand, pose)`               | Apply `neutral`, `relaxed`, `pinching`, `fist`, `thumbs_up`, `pointing`, `rock`, `thumbs_down`, or `victory` over 500 ms.                 |
 | `setHandPose(hand, rotations)`      | Apply sparse named joint `[x,y,z]` rotations in radians over 500 ms.                                                                      |
-| `lookAtTarget(target, options?)`    | Camera speed in degrees/s; default `90`, range `5–180`.                                                                                   |
-| `pointTo(hand?, target?, options?)` | Aim a controller ray. Right hand and `90°/s` default.                                                                                     |
-| `reachTo(hand?, target?, options?)` | Move the index fingertip to a target. Right hand and `0.5 m/s` default; range `0.05–1.5`.                                                 |
+| `lookAtTarget(target, options?)`    | Camera speed in degrees/s; default `720`, range `5–3600`.                                                                                 |
+| `pointTo(hand?, target?, options?)` | Aim a controller ray. Right hand and `720°/s` default.                                                                                    |
+| `reachTo(hand?, target?, options?)` | Move the index fingertip to a target. Right hand and `3 m/s` default; range `0.05–20`.                                                    |
 | `startSelect(hand?)`                | Begin and hold WebXR selection. Default right.                                                                                            |
 | `endSelect(hand?)`                  | Release selection. Default right.                                                                                                         |
 | `click(hand?, options?)`            | Select press and release. Default right and `durationMs: 200`.                                                                            |

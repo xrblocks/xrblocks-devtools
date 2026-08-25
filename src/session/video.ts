@@ -5,12 +5,15 @@ import path from 'node:path';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import type {JsonObject} from '../types.js';
+import type {Viewport} from './types.js';
 
 const execFileAsync = promisify(execFile);
 
 export type SessionVideoRecordingOptions = {
   out: string;
   timelineOut?: string;
+  /** Recorded video dimensions in pixels. Defaults to the browser viewport. */
+  size?: Viewport;
   trim?: boolean;
   /** Transcode the complete recording from scene readiness to MP4. */
   fromSceneReady?: boolean;
@@ -353,7 +356,7 @@ async function trimVideo(
       '-i',
       rawVideoPath,
       '-vf',
-      `select='${select}',setpts=N/FRAME_RATE/TB`,
+      `select='${select}',mpdecimate,setpts=N/FRAME_RATE/TB`,
       '-an',
       '-c:v',
       'libx264',

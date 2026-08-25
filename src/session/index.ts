@@ -27,6 +27,7 @@ export type {
   SimulatorObjectRecord,
   SimulatorObjectUpdate,
   SimulatorPhysicsMode,
+  Viewport,
   Vec3Tuple,
 } from './types.js';
 export type {AudioInjection, AudioInjectionResult} from './audio.js';

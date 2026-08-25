@@ -35,7 +35,11 @@ describe('Session interface', () => {
     const session = new XRBlocksSession(
       {
         appDir: '/app',
-        recordVideo: {out: '/artifacts/run.mp4'},
+        viewport: {width: 800, height: 600},
+        recordVideo: {
+          out: '/artifacts/run.mp4',
+          size: {width: 640, height: 450},
+        },
       },
       dependencies
     );
@@ -45,6 +49,12 @@ describe('Session interface', () => {
 
     expect(dependencies.materializeWorkspace).toHaveBeenCalledOnce();
     expect(dependencies.serveWorkspace).toHaveBeenCalledWith('/workspace');
+    expect(dependencies.createRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({
+        viewport: {width: 800, height: 600},
+        recordVideoSize: {width: 640, height: 450},
+      })
+    );
     expect(runtime.open).toHaveBeenCalledOnce();
     expect(video.finish).toHaveBeenCalledWith('/tmp/raw.webm', undefined);
     expect(dependencies.workspace.cleanup).toHaveBeenCalledOnce();
@@ -315,7 +325,7 @@ function fakeDependencies(
   } = {
     materializeWorkspace: vi.fn().mockResolvedValue(workspace),
     serveWorkspace: vi.fn().mockResolvedValue(server),
-    createRuntime: () => runtime,
+    createRuntime: vi.fn(() => runtime),
     createVideoRecorder: vi.fn().mockResolvedValue(options.video),
     materializeAudio: vi.fn().mockResolvedValue({
       source: 'file',

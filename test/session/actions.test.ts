@@ -22,7 +22,7 @@ describe('agent action interface', () => {
     expect(injectAudio).toHaveBeenCalledWith({text: 'open the menu'});
     expect(lookAtTarget).toHaveBeenCalledWith(
       {tag: 'submit'},
-      {speedDegreesPerSecond: 90}
+      {speedDegreesPerSecond: 720}
     );
   });
 
@@ -33,18 +33,18 @@ describe('agent action interface', () => {
 
     expect(look?.parameters.properties.speed_degrees_per_second).toMatchObject({
       minimum: 5,
-      maximum: 180,
+      maximum: 3600,
     });
     expect(reach?.parameters.properties.speed_meters_per_second).toMatchObject({
       minimum: 0.05,
-      maximum: 1.5,
+      maximum: 20,
     });
     expect(() =>
       executeAgentAction({} as XRBlocksSession, 'targeted', 'look_at_target', {
         target: 'Target',
-        speed_degrees_per_second: 181,
+        speed_degrees_per_second: 3601,
       })
-    ).toThrow('between 5 and 180 degrees per second');
+    ).toThrow('between 5 and 3600 degrees per second');
   });
 
   it('keeps low-level frame and control operations outside the model tools', () => {

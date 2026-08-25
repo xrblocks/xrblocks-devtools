@@ -21,6 +21,7 @@ import {
   XRBlocksSession,
   type PhysicalHand,
   type SimulatorObjectInput,
+  type Viewport,
 } from '../session/index.js';
 import {XRBlocksTestFailure} from './failure.js';
 import type {XRBlocksTestMeta} from './internal-types.js';
@@ -41,6 +42,10 @@ export interface SessionTestOptions extends XRBlocksTestOptions {
   scenes?: SceneVariant[];
   video?: string;
   realTime?: boolean;
+  /** Browser viewport dimensions in pixels. */
+  viewport?: Viewport;
+  /** Recorded video dimensions in pixels. Defaults to the browser viewport. */
+  videoSize?: Viewport;
   /** Load and enforce the active simulator environment navmesh. */
   simulatorNavMesh?: boolean;
   simulatorObjects?: SimulatorObjectInput[];
@@ -112,6 +117,8 @@ export function it_session(
     scenes: _scenes,
     video: _video,
     realTime: _realTime,
+    viewport: _viewport,
+    videoSize: _videoSize,
     simulatorNavMesh: _simulatorNavMesh,
     ...sharedOptions
   } = options;
@@ -146,6 +153,8 @@ export function it_session(
           meta,
           options.video,
           options.realTime ?? false,
+          options.viewport,
+          options.videoSize,
           options.simulatorNavMesh,
           options.simulatorObjects
         );
@@ -264,6 +273,8 @@ async function runSessionTest(
   meta: XRBlocksTestMeta,
   videoName: string | undefined,
   realTime: boolean,
+  viewport: Viewport | undefined,
+  videoSize: Viewport | undefined,
   simulatorNavMesh?: boolean,
   simulatorObjects?: SimulatorObjectInput[]
 ): Promise<void> {
@@ -282,6 +293,7 @@ async function runSessionTest(
       xrblocksRoot: provided.xrblocksRoot,
       entry: provided.entry,
       realTime,
+      viewport,
       recordVideo:
         videoOut && timelineOut
           ? {
@@ -289,6 +301,7 @@ async function runSessionTest(
               timelineOut,
               trim: true,
               paddingMs: 500,
+              size: videoSize,
             }
           : undefined,
       recordAgent: {

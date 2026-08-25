@@ -29,6 +29,7 @@ export type PlaywrightSessionOptions = {
   simulatorReachLimit?: boolean;
   simulatorNavMesh?: boolean;
   recordVideoDir?: string;
+  recordVideoSize?: Viewport;
   onVideoStarted?: () => void;
   onReady?: () => void;
   signal?: AbortSignal;
@@ -73,7 +74,10 @@ export class PlaywrightSessionAdapter {
       if (this.options.recordVideoDir) {
         contextOptions.recordVideo = {
           dir: this.options.recordVideoDir,
-          size: contextOptions.viewport ?? undefined,
+          size:
+            this.options.recordVideoSize ??
+            contextOptions.viewport ??
+            undefined,
         };
       }
       this.context = await this.browser.newContext(contextOptions);

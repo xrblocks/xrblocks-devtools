@@ -169,8 +169,7 @@ const AGENT_ACTIONS: readonly AgentActionDefinition[] = Object.freeze([
     description:
       'Rotate the camera to look at a live context ID, unique scene name, Devtools tag, or world position.',
     parameters: targetToolSchema(false, ANGULAR_SPEED, true),
-    prompt:
-      'look_at_target smoothly rotates the camera toward a context ID, named target, or tagged target at 90 degrees per second by default.',
+    prompt: `look_at_target smoothly rotates the camera toward a context ID, named target, or tagged target at ${ANGULAR_SPEED.default} degrees per second by default.`,
     execute: (session, args) =>
       session.lookAtTarget(requireTarget(args), angularSpeedOptions(args)),
   },
@@ -179,8 +178,7 @@ const AGENT_ACTIONS: readonly AgentActionDefinition[] = Object.freeze([
     description:
       'Aim the selected hand ray at a live context ID, unique scene name, Devtools tag, or world position without moving the hand. Changing the aim while selection is held can provide ray-drag movement.',
     parameters: targetToolSchema(true, ANGULAR_SPEED, true),
-    prompt:
-      'point_to_target smoothly aims a hand ray at a context ID, named target, or tagged target at 90 degrees per second by default. Use it before click and while moving a ray-held object toward its destination.',
+    prompt: `point_to_target smoothly aims a hand ray at a context ID, named target, or tagged target at ${ANGULAR_SPEED.default} degrees per second by default. Use it before click and while moving a ray-held object toward its destination.`,
     execute: (session, args) =>
       session.pointTo(
         handArg(args),
@@ -193,8 +191,7 @@ const AGENT_ACTIONS: readonly AgentActionDefinition[] = Object.freeze([
     description:
       'Move the selected hand so its index fingertip reaches a live context ID, unique scene name, Devtools tag, or world position.',
     parameters: targetToolSchema(true, HAND_MOVE_SPEED, false),
-    prompt:
-      'reach_to_target smoothly moves the index fingertip into direct contact with a context ID, named target, or tagged target at 0.5 meters per second by default. Do not use it for ordinary ray selection or ray dragging.',
+    prompt: `reach_to_target smoothly moves the index fingertip into direct contact with a context ID, named target, or tagged target at ${HAND_MOVE_SPEED.default} meters per second by default. Do not use it for ordinary ray selection or ray dragging.`,
     execute: (session, args) =>
       session.reachTo(
         handArg(args),
