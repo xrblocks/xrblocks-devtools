@@ -88,10 +88,10 @@ xrblocks-devtools interact \
   --record-video ./artifacts/session.mp4
 ```
 
-Action methods create timeline windows. With ffmpeg, overlapping padded windows
-are merged and transcoded to MP4. Without ffmpeg, Devtools keeps a raw WebM and
-records the skip reason in the timeline. Close the REPL before inspecting final
-recording files.
+Action methods create recording windows. With ffmpeg, overlapping padded
+windows are merged and transcoded to MP4. Without ffmpeg, Devtools keeps a raw
+WebM and records the skip reason in the recording manifest. Close the REPL
+before inspecting final recording files.
 
 The full flag and function reference is in the package
 [README](../README.md#interactive-function-reference).

@@ -1,8 +1,16 @@
-export {XRBlocksSession, handIndex, resolveAppUrl} from './session/index.js';
+export {XRBlocksSession} from './session/index.js';
 export type {
   AngularSpeedOptions,
+  AudioInjection,
+  AudioInjectionResult,
+  BrowserDiagnostics,
+  CheckpointRecordingOptions,
+  RecordingArtifact,
+  SessionRecordingOptions,
+  VideoRecordingOptions,
   XRBlocksSessionConfig,
   XRBlocksSessionInfo,
+  SessionCloseResult,
   SessionObjects,
   SessionSimulator,
   SessionTarget,
@@ -11,8 +19,6 @@ export type {
   SimulatorObjectRecord,
   SimulatorObjectUpdate,
   SimulatorPhysicsMode,
-  AudioInjection,
-  AudioInjectionResult,
   ObjectIdentity,
   ObjectInspection,
   ObjectTransform,
@@ -26,7 +32,6 @@ export type {
   LinearSpeedOptions,
   NamedHandPose,
 } from './session/index.js';
-export type {BrowserDiagnostics} from './session/index.js';
 export type {
   ActEvent,
   ActExitPayload,
@@ -46,9 +51,3 @@ export type {
   VisualizeRequest,
   VisualizeResult,
 } from './visualize/types.js';
-export type {
-  SessionVideoRecordingOptions,
-  VideoActionWindow,
-  VideoSegment,
-  VideoTimeline,
-} from './session/index.js';

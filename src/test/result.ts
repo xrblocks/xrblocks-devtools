@@ -1,7 +1,11 @@
 import {randomUUID} from 'node:crypto';
 import {mkdir, rename, rm, writeFile} from 'node:fs/promises';
 import path from 'node:path';
-import type {BrowserDiagnostics, PhysicalHand} from '../session/index.js';
+import type {
+  BrowserDiagnostics,
+  PhysicalHand,
+  RecordingArtifact,
+} from '../session/index.js';
 import type {ActStatus} from '../agent.js';
 import type {SceneVariant} from './authoring.js';
 
@@ -21,8 +25,7 @@ export interface TestRunResult {
   secondaryHand?: PhysicalHand;
   scene?: SceneVariant;
   realTime?: boolean;
-  video?: string;
-  videoTimeline?: string;
+  recording?: RecordingArtifact;
   agentRuns?: AgentRunArtifact[];
   message?: string;
   diagnostics?: BrowserDiagnostics;
@@ -45,7 +48,7 @@ export interface EvaluationError {
 }
 
 export interface EvaluationResult {
-  schemaVersion: 2;
+  schemaVersion: 3;
   status: 'valid' | 'invalid';
   runnable: boolean;
   score: number | null;

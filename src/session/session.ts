@@ -1,14 +1,12 @@
-import {URL} from 'node:url';
 import {runSessionAct, type ActOptions, type ActResult} from '../agent.js';
-import {writeActArtifacts} from '../agent-artifacts.js';
-import type {MaterializedAppWorkspace} from './workspace.js';
-import type {RunningServer} from '../server.js';
+import {writeActArtifacts, type ActArtifacts} from '../agent-artifacts.js';
+import type {RecordingArtifact, SessionRecordingOptions} from './recording.js';
 import {
-  type SessionVideoRecordingOptions,
-  type VideoTimeline,
-} from './video.js';
+  openSessionRuntime,
+  type OpenSessionRuntime,
+  type SessionRuntimePort,
+} from './runtime.js';
 import {
-  DEFAULT_SESSION_TIMEOUT_MS,
   HAND_POSE_JOINT_NAMES,
   type AngularSpeedOptions,
   type BrowserDiagnostics,
@@ -29,15 +27,8 @@ import {
   type Viewport,
 } from './types.js';
 import type {JsonObject} from '../types.js';
-import {runCleanupStep, throwCleanupErrors} from '../cleanup.js';
 import type {AudioInjection, AudioInjectionResult} from './audio.js';
 import {materializeSimulatorObjectInputs} from './simulator-objects.js';
-import {
-  productionSessionDependencies,
-  type SessionDependencies,
-  type SessionRuntimeAdapter,
-  type SessionVideoAdapter,
-} from './session-dependencies.js';
 import {
   ANGULAR_SPEED,
   angularMotionStep,
@@ -77,19 +68,20 @@ export type XRBlocksSessionConfig = XRBlocksSessionTarget & {
   simulatorObjects?: SimulatorObjectInput[];
   /** Module specifier or URL that the target page can load. */
   embodiedControlImport?: string;
-  recordVideo?: SessionVideoRecordingOptions;
+  recording?: SessionRecordingOptions;
   /** Record each act() trajectory and its observation images. */
   recordAgent?: {
     outDir: string;
-    onResult?: (result: ActResult) => void;
   };
   signal?: AbortSignal;
 };
 
-export type XRBlocksSessionInfo = {
-  url: string;
-  appDir?: string;
-  initResult: unknown;
+export type XRBlocksSessionInfo = {url: string};
+
+export type SessionCloseResult = {
+  diagnostics: BrowserDiagnostics;
+  recording?: RecordingArtifact;
+  agentRuns: Array<{status: ActResult['status']; artifacts: ActArtifacts}>;
 };
 
 export type SessionObjects = {
@@ -111,29 +103,26 @@ export class XRBlocksSession {
   readonly objects: SessionObjects;
   readonly simulator: SessionSimulator;
   info?: XRBlocksSessionInfo;
-  videoTimeline?: VideoTimeline;
-  private workspace?: MaterializedAppWorkspace;
-  private server?: RunningServer;
-  private runtime?: SessionRuntimeAdapter;
-  private videoRecorder?: SessionVideoAdapter;
+  private runtime?: SessionRuntimePort;
   private retainedDiagnostics: BrowserDiagnostics = emptyDiagnostics();
   private started = false;
-  private closing?: Promise<void>;
+  private closing?: Promise<SessionCloseResult>;
   private removeAbortListener?: () => void;
   private acting?: Promise<ActResult>;
   private agentRunCount = 0;
+  private readonly agentArtifacts: SessionCloseResult['agentRuns'] = [];
 
-  private readonly dependencies: SessionDependencies;
+  private readonly openRuntime: OpenSessionRuntime;
 
   constructor(config: XRBlocksSessionConfig);
   /** @internal */
-  constructor(config: XRBlocksSessionConfig, dependencies: SessionDependencies);
+  constructor(config: XRBlocksSessionConfig, openRuntime: OpenSessionRuntime);
   constructor(
     config: XRBlocksSessionConfig,
-    dependencies: SessionDependencies = productionSessionDependencies
+    openRuntime: OpenSessionRuntime = openSessionRuntime
   ) {
     this.config = config;
-    this.dependencies = dependencies;
+    this.openRuntime = openRuntime;
     this.objects = {
       findByTag: (tag: string) =>
         this.requireRuntime().invoke<Array<ObjectIdentity & {tag: string}>>(
@@ -184,7 +173,7 @@ export class XRBlocksSession {
   }
 
   async start(): Promise<XRBlocksSessionInfo> {
-    if (this.started)
+    if (this.started || this.closing)
       throw new Error('XRBlocks session has already been started.');
 
     const signal = this.config.signal;
@@ -199,62 +188,32 @@ export class XRBlocksSession {
     try {
       this.retainedDiagnostics = emptyDiagnostics();
       validateSessionConfig(this.config);
-      let targetUrl = this.config.url;
-      let appDir: string | undefined;
-      if (!targetUrl) {
-        if (!this.config.appDir)
-          throw new Error('Session requires --app-dir or --url.');
-        this.workspace = await this.dependencies.materializeWorkspace({
-          appDir: this.config.appDir,
-          xrblocksRoot: this.config.xrblocksRoot,
-          simulatorNavMesh: this.config.simulatorNavMesh,
-        });
-        signal?.throwIfAborted();
-        appDir = this.config.appDir;
-        this.server = await this.dependencies.serveWorkspace(
-          this.workspace.rootDir
-        );
-        signal?.throwIfAborted();
-        targetUrl = resolveAppUrl(this.server.url, this.config.entry);
-      } else {
-        targetUrl = appendSessionQuery(targetUrl);
-      }
-
-      this.videoRecorder = await this.dependencies.createVideoRecorder(
-        this.config.recordVideo
-      );
-      const videoRecorder = this.videoRecorder;
-      signal?.throwIfAborted();
-      this.runtime = this.dependencies.createRuntime({
-        url: targetUrl,
-        headless: this.config.headless ?? true,
-        timeoutMs: this.config.timeoutMs ?? DEFAULT_SESSION_TIMEOUT_MS,
-        viewport: this.config.viewport ?? {width: 800, height: 600},
-        embodiedControlOptions: {
-          autoPause: true,
-          realTime: this.config.realTime ?? true,
-        },
+      const target = this.config.url
+        ? {url: this.config.url}
+        : {
+            appDir: this.config.appDir!,
+            xrblocksRoot: this.config.xrblocksRoot,
+            entry: this.config.entry,
+          };
+      this.runtime = await this.openRuntime({
+        target,
+        headless: this.config.headless,
+        timeoutMs: this.config.timeoutMs,
+        viewport: this.config.viewport,
+        realTime: this.config.realTime,
+        monitorAudio: this.config.monitorAudio,
         embodiedControlImport: this.config.embodiedControlImport,
         simulatorReachLimit: this.config.simulatorReachLimit,
         simulatorNavMesh: this.config.simulatorNavMesh,
-        recordVideoDir: videoRecorder?.rawDir,
-        recordVideoSize: this.config.recordVideo?.size,
+        recording: this.config.recording,
         signal,
-        onVideoStarted: videoRecorder
-          ? () => videoRecorder.markVideoStarted()
-          : undefined,
-        onReady: videoRecorder
-          ? () => videoRecorder.markSceneReady()
-          : undefined,
       });
-
-      const initResult = await this.runtime.open();
       signal?.throwIfAborted();
       this.started = true;
       if (this.config.simulatorObjects?.length) {
         await this.simulator.addObjects(this.config.simulatorObjects);
       }
-      this.info = {url: targetUrl, appDir, initResult};
+      this.info = this.runtime.info;
       return this.info;
     } catch (error) {
       await this.close();
@@ -263,40 +222,24 @@ export class XRBlocksSession {
   }
 
   close() {
-    this.closing ??= this.closeResources().finally(() => {
-      this.closing = undefined;
-    });
-    return this.closing;
+    return (this.closing ??= this.closeResources());
   }
 
-  private async closeResources() {
+  private async closeResources(): Promise<SessionCloseResult> {
     this.removeAbortListener?.();
     this.removeAbortListener = undefined;
     const runtime = this.runtime;
-    const videoRecorder = this.videoRecorder;
-    const server = this.server;
-    const workspace = this.workspace;
     if (runtime) this.retainedDiagnostics = runtime.diagnostics;
     this.runtime = undefined;
-    this.videoRecorder = undefined;
-    this.server = undefined;
-    this.workspace = undefined;
     this.started = false;
-
-    const errors: unknown[] = [];
-    const rawVideoPath = runtime
-      ? await runCleanupStep(() => runtime.close(), errors)
-      : undefined;
-    if (videoRecorder) {
-      this.videoTimeline = await runCleanupStep(
-        () => videoRecorder.finish(rawVideoPath, this.config.signal),
-        errors
-      );
-    }
-    if (server) await runCleanupStep(() => server.close(), errors);
-    if (workspace) await runCleanupStep(() => workspace.cleanup(), errors);
-
-    throwCleanupErrors(errors, 'XRBlocks session cleanup failed.');
+    const runtimeResult = runtime
+      ? await runtime.close()
+      : {diagnostics: this.retainedDiagnostics};
+    this.retainedDiagnostics = runtimeResult.diagnostics;
+    return {
+      ...runtimeResult,
+      agentRuns: [...this.agentArtifacts],
+    };
   }
 
   /** @internal Shared seam for package-owned harness features. */
@@ -363,11 +306,11 @@ export class XRBlocksSession {
   }
 
   navigateTo(target: SessionTarget): Promise<SimulatorNavigationResult> {
-    return this.recordAction('navigateTo', {target}, () =>
-      this.requireRuntime().invoke<SimulatorNavigationResult>(
-        'navigateTo',
-        target
-      )
+    return this.requireRuntime().perform<SimulatorNavigationResult>(
+      'navigateTo',
+      {target},
+      'navigateTo',
+      target
     );
   }
 
@@ -385,8 +328,8 @@ export class XRBlocksSession {
       const outDir = this.config.recordAgent?.outDir;
       if (!outDir) return result;
       const artifacts = await writeActArtifacts(result, outDir, runNumber);
+      this.agentArtifacts.push({status: result.status, artifacts});
       const recorded = {...result, artifacts};
-      this.config.recordAgent?.onResult?.(recorded);
       return recorded;
     });
     this.acting = run;
@@ -398,103 +341,131 @@ export class XRBlocksSession {
   }
 
   teleportTo(target: unknown, options?: JsonObject) {
-    return this.recordAction('teleportTo', {target, options}, () =>
-      this.requireRuntime().invoke('teleportTo', target, options)
+    return this.requireRuntime().perform(
+      'teleportTo',
+      {target, options},
+      'teleportTo',
+      target,
+      options
     );
   }
 
   stepControl(options: {durationMs?: number; control?: JsonObject}) {
     const step: JsonObject = {control: options.control ?? {}};
     if (options.durationMs !== undefined) step.durationMs = options.durationMs;
-    return this.recordAction('stepControl', step, () =>
-      this.requireRuntime().invoke('stepControl', step)
+    return this.requireRuntime().perform(
+      'stepControl',
+      step,
+      'stepControl',
+      step
     );
   }
 
   applyControl(control: JsonObject = {}) {
-    return this.recordAction('applyControl', control, () =>
-      this.requireRuntime().invoke('applyControl', control)
+    return this.requireRuntime().perform(
+      'applyControl',
+      control,
+      'applyControl',
+      control
     );
   }
 
   move(motion: LinearMotion) {
     const step = linearMotionStep(motion, VIEWER_MOVE_SPEED);
-    return this.recordAction('move', motion, () =>
-      this.requireRuntime().invoke('stepControl', {
-        durationMs: step.durationMs,
-        control: {locomotion: {move: step.move}},
-      })
-    );
+    return this.requireRuntime().perform('move', motion, 'stepControl', {
+      durationMs: step.durationMs,
+      control: {locomotion: {move: step.move}},
+    });
   }
 
   rotate(rotation: EulerRotation) {
     const step = angularMotionStep(rotation);
-    return this.recordAction('rotate', rotation, () =>
-      this.requireRuntime().invoke('stepControl', {
-        durationMs: step.durationMs,
-        control: {locomotion: {rotate: step.rotate}},
-      })
-    );
+    return this.requireRuntime().perform('rotate', rotation, 'stepControl', {
+      durationMs: step.durationMs,
+      control: {locomotion: {rotate: step.rotate}},
+    });
   }
 
   moveHand(hand: PhysicalHand, motion: LinearMotion) {
-    const normalizedHand = handIndex(hand) === 0 ? 'leftHand' : 'rightHand';
+    const normalizedHand = controlHand(hand);
     const step = linearMotionStep(motion, HAND_MOVE_SPEED);
-    return this.recordAction('moveHand', {hand, ...motion}, () =>
-      this.requireRuntime().invoke('stepControl', {
+    return this.requireRuntime().perform(
+      'moveHand',
+      {hand, ...motion},
+      'stepControl',
+      {
         durationMs: step.durationMs,
         control: {[normalizedHand]: {move: step.move}},
-      })
+      }
     );
   }
 
   teleportHand(hand: PhysicalHand, target: unknown) {
-    return this.recordAction('teleportHand', {hand, target}, () =>
-      this.requireRuntime().invoke('reachTo', handIndex(hand), target)
+    return this.requireRuntime().perform(
+      'teleportHand',
+      {hand, target},
+      'reachTo',
+      handIndex(hand),
+      target
     );
   }
 
   rotateHand(hand: PhysicalHand, rotation: EulerRotation) {
-    const normalizedHand = handIndex(hand) === 0 ? 'leftHand' : 'rightHand';
+    const normalizedHand = controlHand(hand);
     const step = angularMotionStep(rotation);
-    return this.recordAction('rotateHand', {hand, ...rotation}, () =>
-      this.requireRuntime().invoke('stepControl', {
+    return this.requireRuntime().perform(
+      'rotateHand',
+      {hand, ...rotation},
+      'stepControl',
+      {
         durationMs: step.durationMs,
         control: {[normalizedHand]: {rotate: step.rotate}},
-      })
+      }
     );
   }
 
   gesture(hand: PhysicalHand, pose: NamedHandPose) {
-    const normalizedHand = handIndex(hand) === 0 ? 'leftHand' : 'rightHand';
-    return this.recordAction('gesture', {hand, pose}, () =>
-      this.requireRuntime().invoke('stepControl', {
+    const normalizedHand = controlHand(hand);
+    return this.requireRuntime().perform(
+      'gesture',
+      {hand, pose},
+      'stepControl',
+      {
         durationMs: HAND_POSE_TRANSITION_MS,
         control: {[normalizedHand]: {pose}},
-      })
+      }
     );
   }
 
   setHandPose(hand: PhysicalHand, rotations: HandPoseRotations) {
     validateHandPoseRotations(rotations);
-    const normalizedHand = handIndex(hand) === 0 ? 'leftHand' : 'rightHand';
-    return this.recordAction('setHandPose', {hand, rotations}, () =>
-      this.requireRuntime().invoke('stepControl', {
+    const normalizedHand = controlHand(hand);
+    return this.requireRuntime().perform(
+      'setHandPose',
+      {hand, rotations},
+      'stepControl',
+      {
         durationMs: HAND_POSE_TRANSITION_MS,
         control: {[normalizedHand]: {rotations}},
-      })
+      }
     );
   }
 
   startSelect(hand: PhysicalHand = 'right') {
-    return this.recordAction('startSelect', {hand}, () =>
-      this.requireRuntime().invoke('startSelect', handIndex(hand))
+    return this.requireRuntime().perform(
+      'startSelect',
+      {hand},
+      'startSelect',
+      handIndex(hand)
     );
   }
 
   endSelect(hand: PhysicalHand = 'right') {
-    return this.recordAction('endSelect', {hand}, () =>
-      this.requireRuntime().invoke('endSelect', handIndex(hand))
+    return this.requireRuntime().perform(
+      'endSelect',
+      {hand},
+      'endSelect',
+      handIndex(hand)
     );
   }
 
@@ -504,13 +475,12 @@ export class XRBlocksSession {
       ANGULAR_SPEED,
       'speedDegreesPerSecond'
     );
-    return this.recordAction(
+    return this.requireRuntime().perform(
       'lookAtTarget',
       {target, speedDegreesPerSecond},
-      () =>
-        this.requireRuntime().invoke('lookAtTarget', target, {
-          velocity: (speedDegreesPerSecond * Math.PI) / 180,
-        })
+      'lookAtTarget',
+      target,
+      {velocity: (speedDegreesPerSecond * Math.PI) / 180}
     );
   }
 
@@ -524,13 +494,13 @@ export class XRBlocksSession {
       ANGULAR_SPEED,
       'speedDegreesPerSecond'
     );
-    return this.recordAction(
+    return this.requireRuntime().perform(
       'pointTo',
       {hand, target, speedDegreesPerSecond},
-      () =>
-        this.requireRuntime().invoke('pointTo', handIndex(hand), target, {
-          velocity: (speedDegreesPerSecond * Math.PI) / 180,
-        })
+      'pointTo',
+      handIndex(hand),
+      target,
+      {velocity: (speedDegreesPerSecond * Math.PI) / 180}
     );
   }
 
@@ -544,19 +514,23 @@ export class XRBlocksSession {
       HAND_MOVE_SPEED,
       'speedMetersPerSecond'
     );
-    return this.recordAction(
+    return this.requireRuntime().perform(
       'reachTo',
       {hand, target, speedMetersPerSecond},
-      () =>
-        this.requireRuntime().invoke('reachTo', handIndex(hand), target, {
-          velocity: speedMetersPerSecond,
-        })
+      'reachTo',
+      handIndex(hand),
+      target,
+      {velocity: speedMetersPerSecond}
     );
   }
 
   click(hand: PhysicalHand = 'right', options?: JsonObject) {
-    return this.recordAction('click', {hand, options}, () =>
-      this.requireRuntime().invoke('click', handIndex(hand), options)
+    return this.requireRuntime().perform(
+      'click',
+      {hand, options},
+      'click',
+      handIndex(hand),
+      options
     );
   }
 
@@ -564,51 +538,31 @@ export class XRBlocksSession {
     if (!Number.isFinite(durationMs) || durationMs <= 0) {
       throw new Error('Wait durationMs must be a positive finite number.');
     }
-    return this.recordAction('wait', {durationMs}, () =>
-      this.requireRuntime().invoke('wait', durationMs)
+    return this.requireRuntime().perform(
+      'wait',
+      {durationMs},
+      'wait',
+      durationMs
     );
   }
 
   stepFrame(frames = 1) {
-    return this.recordAction('stepFrame', {frames}, () =>
-      this.requireRuntime().invoke('stepFrame', frames)
+    return this.requireRuntime().perform(
+      'stepFrame',
+      {frames},
+      'stepFrame',
+      frames
     );
   }
 
-  async injectAudio(input: AudioInjection): Promise<AudioInjectionResult> {
-    const runtime = this.requireRuntime();
-    const materialized = await this.dependencies.materializeAudio(input);
-    try {
-      return await this.recordAction(
-        'injectAudio',
-        {
-          source: materialized.source,
-          monitor: this.config.monitorAudio ?? false,
-        },
-        () =>
-          runtime.injectAudio({
-            source: materialized.source,
-            base64: materialized.bytes.toString('base64'),
-            monitor: this.config.monitorAudio ?? false,
-          })
-      );
-    } finally {
-      await materialized.cleanup();
-    }
+  injectAudio(input: AudioInjection): Promise<AudioInjectionResult> {
+    return this.requireRuntime().injectAudio(input);
   }
 
   private requireRuntime() {
     if (!this.started || !this.runtime)
       throw new Error('XRBlocks session has not been started.');
     return this.runtime;
-  }
-
-  private recordAction<T>(
-    name: string,
-    metadata: JsonObject | undefined,
-    action: () => Promise<T>
-  ) {
-    return this.videoRecorder?.recordAction(name, metadata, action) ?? action();
   }
 }
 
@@ -633,16 +587,23 @@ function validateSessionConfig(config: XRBlocksSessionConfig) {
   if (config.recordAgent !== undefined && !config.recordAgent.outDir.trim()) {
     throw new Error('recordAgent.outDir must not be empty.');
   }
+  if (config.recording !== undefined && !config.recording.out.trim()) {
+    throw new Error('recording.out must not be empty.');
+  }
 }
 
 function emptyDiagnostics(): BrowserDiagnostics {
   return {consoleEntries: [], pageErrors: [], networkErrors: []};
 }
 
-export function handIndex(hand: PhysicalHand | undefined | null) {
+function handIndex(hand: PhysicalHand | undefined | null) {
   if (hand === undefined || hand === null || hand === 'right') return 1;
   if (hand === 'left') return 0;
   throw new Error(`Hand must be "left" or "right": ${String(hand)}`);
+}
+
+function controlHand(hand: PhysicalHand) {
+  return handIndex(hand) === 0 ? 'leftHand' : 'rightHand';
 }
 
 function validateHandPoseRotations(rotations: HandPoseRotations) {
@@ -661,20 +622,4 @@ function validateHandPoseRotations(rotations: HandPoseRotations) {
       );
     }
   }
-}
-
-export function resolveAppUrl(baseUrl: string, entry = '.') {
-  const root = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
-  const appUrl = new URL('app/', root);
-  const resolved = entry.startsWith('/')
-    ? new URL(entry.slice(1), root)
-    : new URL(entry, appUrl);
-  return appendSessionQuery(resolved.href);
-}
-
-function appendSessionQuery(url: string) {
-  const parsed = new URL(url);
-  parsed.searchParams.set('xrAutomation', '1');
-  parsed.searchParams.set('debug', '1');
-  return parsed.href;
 }

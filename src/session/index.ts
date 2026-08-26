@@ -1,8 +1,9 @@
-export {XRBlocksSession, handIndex, resolveAppUrl} from './session.js';
+export {XRBlocksSession} from './session.js';
 export {DEFAULT_SESSION_TIMEOUT_MS} from './types.js';
 export type {
   SessionObjects,
   SessionTarget,
+  SessionCloseResult,
   SimulatorNavigationResult,
   XRBlocksSessionConfig,
   XRBlocksSessionInfo,
@@ -32,8 +33,8 @@ export type {
 } from './types.js';
 export type {AudioInjection, AudioInjectionResult} from './audio.js';
 export type {
-  SessionVideoRecordingOptions,
-  VideoActionWindow,
-  VideoSegment,
-  VideoTimeline,
-} from './video.js';
+  CheckpointRecordingOptions,
+  RecordingArtifact,
+  SessionRecordingOptions,
+  VideoRecordingOptions,
+} from './recording.js';

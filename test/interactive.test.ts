@@ -33,6 +33,7 @@ describe('interactive REPL interface', () => {
     });
 
     expect(move).toHaveBeenCalledWith({forwardMeters: 1});
+    expect(server.context).toHaveProperty('session', session);
     expect(server.context).not.toHaveProperty('act');
     expect(server.context).not.toHaveProperty('observe');
     expect(interactiveHelpText()).toContain('saveScreenshot(path, options?)');

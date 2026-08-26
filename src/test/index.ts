@@ -31,17 +31,12 @@ export {
 } from './authoring.js';
 export {
   captureOutputSnapshot,
-  expectBoundedResult,
-  expectCreatedOrRemoved,
   expectNotVisible,
-  expectPathConnects,
-  expectRenderedTag,
+  expectOnSurface,
   expectRenderStateChanged,
   expectSpatialRelation,
-  expectSpecificText,
-  expectSurfaceConformance,
   expectTransformChanged,
-  expectVisibleFromAnyYaw,
+  expectVisible,
   type SpatialRelation,
 } from './output-expectations.js';
 export {expectSessionHealthy} from './session-expectations.js';

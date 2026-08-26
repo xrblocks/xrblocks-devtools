@@ -141,9 +141,10 @@ npx --no-install xrblocks-devtools interact \
   --record-video-padding-ms 500
 ```
 
-Use `--record-video-timeline`, `--keep-raw-video`, or `--no-trim-video` when the
-scenario needs them. ffmpeg produces trimmed MP4 output; otherwise Devtools
-keeps raw WebM and records the reason in the timeline.
+Use `--record-video-scope scene` to keep continuous motion after scene readiness
+or `--record-video-scope full` to keep the complete WebM. Use
+`--record-checkpoints` when one frame per action is more useful than continuous
+motion.
 
 Finish with `.exit` or Ctrl-D. Then verify the interactive CLI and its child
 browser/server processes are absent before reporting completion.

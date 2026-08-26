@@ -243,8 +243,7 @@ function collectTestRun(
     secondaryHand: meta.secondaryHand,
     scene: meta.scene,
     realTime: meta.realTime,
-    video: meta.video,
-    videoTimeline: meta.videoTimeline,
+    recording: meta.recording,
     agentRuns: meta.agentRuns,
     message: firstError ? errorMessage(firstError) : undefined,
     diagnostics: meta.diagnostics,
@@ -318,7 +317,7 @@ function emptyResult(
   startedAt: Date
 ): EvaluationResult {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     status: 'valid',
     runnable: false,
     score: 0,

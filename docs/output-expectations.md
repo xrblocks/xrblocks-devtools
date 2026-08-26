@@ -1,7 +1,7 @@
 # Tagged output expectations
 
-Tagged output expectations verify durable application results without image
-judging. Add a stable tag to each output that a test must inspect:
+Tagged output expectations verify application results without image judging.
+Add a stable tag to each output that a test must inspect:
 
 ```js
 object.userData.xrblocksDevtools = {
@@ -9,60 +9,51 @@ object.userData.xrblocksDevtools = {
 };
 ```
 
-## Capture a fixed frame
+## Check visibility
 
-Capture one snapshot, then run all fixed-frame expectations against that
-snapshot. This prevents later frames from changing the evidence between
-expectations.
+Use the session directly for visibility checks:
 
 ```ts
-const snapshot = await captureOutputSnapshot(session);
-
-expectRenderedTag(snapshot, 'settings-menu', {
-  count: 1,
-  minScreenCoverage: 0.01,
-  unoccluded: true,
-});
-expectSpecificText(snapshot, 'settings-title', 'Settings');
+await expectVisible(session, 'settings-menu');
+await expectNotVisible(session, 'loading-indicator');
 ```
 
-`expectRenderedTag` requires all of these results:
+Both helpers use the same visibility result. `expectVisible` passes when the
+tagged output has displayed geometry. `expectNotVisible` passes for the
+opposite result. An absent, hidden, empty, or fully transparent output is not
+visible.
 
-- The expected number of tagged outputs exists.
-- Each output has renderable geometry.
-- Scene Context reports each output as rendered and in the camera frame.
-- Each output has a nonzero projected screen extent.
+The check does not test occlusion, camera position, camera direction, or screen
+framing. It does not rotate the camera, step the scene, or run Scene Context.
 
-Set `unoccluded: true` when Scene Context must also report the output as being
-in line of sight.
-
-Scene Context is the visibility authority. The scene hierarchy does not decide
-whether an output is visible.
-
-Use an ID when a tag identifies more than one output:
+Use an ID when one tag identifies several outputs:
 
 ```ts
-expectSpecificText(
-  snapshot,
-  {tag: 'item-label', id: selectedLabelId},
-  'Selected'
-);
+await expectVisible(session, {tag: 'item', id: selectedItemId});
 ```
 
-## Compare before and after
+## Capture output data
 
-Use two snapshots to verify an action result:
+Capture snapshots for display state, bounds, transforms, materials, surfaces,
+declared text, and declared paths:
 
 ```ts
 const before = await captureOutputSnapshot(session);
 await session.click(primaryHand);
 const after = await captureOutputSnapshot(session);
 
-expectCreatedOrRemoved(before, after, 'settings-menu', {created: 1});
 expectTransformChanged(before, after, 'selected-object', {
   positionMeters: 0.01,
 });
-expectRenderStateChanged(before, after, 'button', ['color', 'emissive']);
+expectRenderStateChanged(before, after, 'button', ['color']);
+```
+
+Read simple or app-specific results from the snapshot with the normal test
+expectation:
+
+```ts
+const result = snapshot.outputs.find((output) => output.tag === 'result');
+expect(result?.text).toBe('Complete');
 ```
 
 ## Check spatial results
@@ -72,79 +63,13 @@ expectSpatialRelation(snapshot, 'label', 'above', 'button', {
   toleranceMeters: 0.01,
 });
 
-expectPathConnects(snapshot, 'measurement-line', {
-  start: 'start-anchor',
-  end: 'end-anchor',
+expectOnSurface(snapshot, 'placed-object', {
+  surface: {label: 'table'},
   toleranceMeters: 0.02,
 });
-
-expectSurfaceConformance(snapshot, 'placed-object', {
-  surface: {label: 'table'},
-  maxDistanceMeters: 0.02,
-  maxNormalAngleDegrees: 5,
-});
 ```
 
-`expectSpatialRelation` supports `near`, `aligned`, `above`, `inside`,
-`touching`, `non-overlapping`, `symmetric`, and `matched`.
-
-Line, ray, and trail geometry uses its first and last position vertices as path
-endpoints. Declare custom endpoints when a renderer does not expose an ordered
-position attribute:
-
-```js
-wire.userData.xrblocksDevtools = {
-  tag: 'measurement-line',
-  output: {
-    get path() {
-      return {
-        start: startPoint.toArray(),
-        end: endPoint.toArray(),
-      };
-    },
-  },
-};
-```
-
-Custom text can use the same metadata:
-
-```js
-label.userData.xrblocksDevtools = {
-  tag: 'status-label',
-  output: {
-    get text() {
-      return currentUserFacingText;
-    },
-  },
-};
-```
-
-XR Blocks `UIText` and Scene Context text do not need custom metadata.
-
-## Check several frames
-
-Temporal expectations advance deterministic simulation frames:
-
-```ts
-await expectBoundedResult(session, {
-  maxFrames: 60,
-  durableFrames: 3,
-  description: 'result text becomes Complete',
-  check: (snapshot) =>
-    snapshot.outputs.some(
-      (output) => output.tag === 'result' && output.text === 'Complete'
-    ),
-});
-```
-
-Use `expectVisibleFromAnyYaw` to rerun Scene Context in several viewer
-directions. The helper restores the camera before it returns:
-
-```ts
-await expectVisibleFromAnyYaw(session, 'result', {
-  yaws: [0, 90, 180, 270],
-});
-```
+`expectSpatialRelation` supports `aligned`, `above`, and `touching`.
 
 ## Check session health
 

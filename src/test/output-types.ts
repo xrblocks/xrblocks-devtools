@@ -9,15 +9,6 @@ export type OutputBounds = {
   size: Vec3Tuple;
 };
 
-export type OutputScreenBounds = {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-  width: number;
-  height: number;
-};
-
 export type OutputMaterialSnapshot = {
   id: string;
   type: string;
@@ -47,15 +38,7 @@ export type OutputRecord = {
   worldTransform: ObjectTransform;
   bounds: OutputBounds | null;
   render: {
-    hasRenderableGeometry: boolean;
-    /** Scene Context reports that the output participates in rendering. */
-    rendered: boolean;
-    /** Scene Context reports that the output is in the camera frame. */
-    inFrustum: boolean;
-    /** Scene Context reports that the output is in line of sight. */
-    unoccluded: boolean;
-    screenBounds: OutputScreenBounds | null;
-    screenCoverage: number;
+    displayed: boolean;
     renderables: OutputRenderableSnapshot[];
   };
   text: string | null;
@@ -73,9 +56,6 @@ export type OutputSurfaceSnapshot = {
 export type OutputSnapshot = {
   outputs: OutputRecord[];
   surfaces: OutputSurfaceSnapshot[];
-  visibility:
-    | {available: true; snapshotId?: string; capturedAt?: number}
-    | {available: false; error?: string};
 };
 
 export type OutputChangeField =
@@ -87,12 +67,3 @@ export type OutputChangeField =
   | 'material'
   | 'geometry'
   | 'text';
-
-export type OutputYawView = {
-  yawDegrees: number;
-  visibilityAvailable: boolean;
-  rendered: boolean;
-  inFrustum: boolean;
-  unoccluded: boolean;
-  error?: string;
-};
