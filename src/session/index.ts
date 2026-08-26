@@ -31,7 +31,12 @@ export type {
   Viewport,
   Vec3Tuple,
 } from './types.js';
-export type {AudioInjection, AudioInjectionResult} from './audio.js';
+export type {
+  AudioConsumerState,
+  AudioInjection,
+  AudioInjectionResult,
+  WaitForAudioConsumerOptions,
+} from './audio.js';
 export type {
   CheckpointRecordingOptions,
   RecordingArtifact,

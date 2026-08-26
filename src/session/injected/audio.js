@@ -114,6 +114,28 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  function getState() {
+    return {
+      activeConsumers: activeTracks.size,
+      injectionActive,
+      contextState: context.state,
+    };
+  }
+
+  async function waitForConsumer(timeoutMs) {
+    const deadline = Date.now() + timeoutMs;
+    while (activeTracks.size === 0) {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        throw new Error(
+          `No microphone or speech recognition consumer became active within ${timeoutMs} ms.`
+        );
+      }
+      await wait(Math.min(25, remainingMs));
+    }
+    return getState();
+  }
+
   async function inject({base64, source, monitor = false}) {
     if (injectionActive) {
       throw new Error('Audio injection is already in progress.');
@@ -170,12 +192,7 @@
   window.__xrblocksSyntheticAudio = {
     available: true,
     inject,
-    getState() {
-      return {
-        activeConsumers: activeTracks.size,
-        injectionActive,
-        contextState: context.state,
-      };
-    },
+    getState,
+    waitForConsumer,
   };
 })();

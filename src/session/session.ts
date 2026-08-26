@@ -27,7 +27,12 @@ import {
   type Viewport,
 } from './types.js';
 import type {JsonObject} from '../types.js';
-import type {AudioInjection, AudioInjectionResult} from './audio.js';
+import type {
+  AudioConsumerState,
+  AudioInjection,
+  AudioInjectionResult,
+  WaitForAudioConsumerOptions,
+} from './audio.js';
 import {materializeSimulatorObjectInputs} from './simulator-objects.js';
 import {
   ANGULAR_SPEED,
@@ -557,6 +562,12 @@ export class XRBlocksSession {
 
   injectAudio(input: AudioInjection): Promise<AudioInjectionResult> {
     return this.requireRuntime().injectAudio(input);
+  }
+
+  waitForAudioConsumer(
+    options?: WaitForAudioConsumerOptions
+  ): Promise<AudioConsumerState> {
+    return this.requireRuntime().waitForAudioConsumer(options);
   }
 
   private requireRuntime() {

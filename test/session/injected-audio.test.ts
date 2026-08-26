@@ -55,7 +55,14 @@ function makeAudioContext() {
   };
 }
 
-async function installAudio() {
+async function installAudio(
+  schedule: (callback: () => void, delayMs?: number) => unknown = (
+    callback
+  ) => {
+    callback();
+    return 0;
+  }
+) {
   class MockRecognition {
     startedWith?: MockTrack;
     private listeners = new Map<string, Array<() => void>>();
@@ -82,15 +89,15 @@ async function installAudio() {
     navigator,
     MediaStream: MockMediaStream,
     atob: (value: string) => Buffer.from(value, 'base64').toString('binary'),
-    setTimeout: (callback: () => void) => {
-      callback();
-      return 0;
-    },
+    setTimeout: schedule,
   });
   return {
     audio: window.__xrblocksSyntheticAudio as {
       inject(input: object): Promise<Record<string, unknown>>;
       getState(): {activeConsumers: number};
+      waitForConsumer(timeoutMs: number): Promise<{
+        activeConsumers: number;
+      }>;
     },
     navigator,
     nativeGetUserMedia,
@@ -108,6 +115,23 @@ describe('injected synthetic microphone', () => {
     await expect(
       audio.inject({base64: Buffer.from('wav').toString('base64')})
     ).rejects.toThrow('requires an active microphone');
+  });
+
+  it('resolves readiness when getUserMedia has an active consumer', async () => {
+    const {audio, navigator} = await installAudio();
+    await navigator.mediaDevices.getUserMedia({audio: true});
+
+    await expect(audio.waitForConsumer(100)).resolves.toMatchObject({
+      activeConsumers: 1,
+    });
+  });
+
+  it('rejects readiness when no consumer becomes active', async () => {
+    const {audio} = await installAudio(setTimeout);
+
+    await expect(audio.waitForConsumer(5)).rejects.toThrow(
+      'No microphone or speech recognition consumer became active within 5 ms.'
+    );
   });
 
   it('injects audio, reports metadata, and steps a zero-time frame', async () => {

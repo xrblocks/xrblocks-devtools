@@ -16,6 +16,16 @@ export type AudioInjectionResult = {
   frameStepped: true;
 };
 
+export type WaitForAudioConsumerOptions = {
+  timeoutMs?: number;
+};
+
+export type AudioConsumerState = {
+  activeConsumers: number;
+  injectionActive: boolean;
+  contextState: string;
+};
+
 export async function materializeAudioInjection(input: AudioInjection) {
   assertAudioInjection(input);
   if ('file' in input) {

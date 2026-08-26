@@ -11,8 +11,10 @@ import {runCleanupStep, throwCleanupErrors} from '../cleanup.js';
 import {serveDirectory, type RunningServer} from '../server.js';
 import {
   materializeAudioInjection,
+  type AudioConsumerState,
   type AudioInjection,
   type AudioInjectionResult,
+  type WaitForAudioConsumerOptions,
 } from './audio.js';
 import {injectedAudioSource, injectedHarnessSource} from './injected-source.js';
 import {
@@ -67,6 +69,9 @@ export type SessionRuntimePort = {
     ...args: unknown[]
   ): Promise<T>;
   injectAudio(input: AudioInjection): Promise<AudioInjectionResult>;
+  waitForAudioConsumer(
+    options?: WaitForAudioConsumerOptions
+  ): Promise<AudioConsumerState>;
   close(): Promise<RuntimeCloseResult>;
 };
 
@@ -226,6 +231,26 @@ class SessionRuntime implements SessionRuntimePort {
     }
   }
 
+  async waitForAudioConsumer(
+    options: WaitForAudioConsumerOptions = {}
+  ): Promise<AudioConsumerState> {
+    const timeoutMs =
+      options.timeoutMs ?? this.options.timeoutMs ?? DEFAULT_SESSION_TIMEOUT_MS;
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+      throw new Error(
+        'Audio consumer readiness timeoutMs must be a positive finite number.'
+      );
+    }
+
+    return this.requirePage().evaluate((readinessTimeoutMs) => {
+      const audio = globalThis.window.__xrblocksSyntheticAudio;
+      if (!audio?.available) {
+        throw new Error('Synthetic microphone audio is unavailable.');
+      }
+      return audio.waitForConsumer(readinessTimeoutMs);
+    }, timeoutMs);
+  }
+
   close() {
     return (this.closing ??= this.closeResources());
   }
@@ -359,6 +384,8 @@ declare global {
     __xrblocksSyntheticAudio?: {
       available: boolean;
       inject(input: JsonObject): Promise<unknown>;
+      getState(): AudioConsumerState;
+      waitForConsumer(timeoutMs: number): Promise<AudioConsumerState>;
     };
   }
 }

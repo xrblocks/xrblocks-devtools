@@ -75,6 +75,7 @@ describe('Session interface', () => {
 
     await session.objects.findByTag('box');
     await session.simulator.updateObjects([{id: 'box', position: [1, 2, 3]}]);
+    await session.waitForAudioConsumer({timeoutMs: 2_000});
     await session.injectAudio({file: '/speech.wav'});
 
     expect(runtime.invoke).toHaveBeenCalledWith('findObjectsByTag', 'box');
@@ -82,6 +83,9 @@ describe('Session interface', () => {
       {id: 'box', position: [1, 2, 3]},
     ]);
     expect(runtime.injectAudio).toHaveBeenCalledWith({file: '/speech.wav'});
+    expect(runtime.waitForAudioConsumer).toHaveBeenCalledWith({
+      timeoutMs: 2_000,
+    });
     await session.close();
   });
 });
@@ -110,6 +114,11 @@ function fakeRuntime(): SessionRuntimePort {
     invoke: vi.fn().mockResolvedValue({}),
     perform: vi.fn().mockResolvedValue({completed: true}),
     injectAudio: vi.fn().mockResolvedValue({completed: true}),
+    waitForAudioConsumer: vi.fn().mockResolvedValue({
+      activeConsumers: 1,
+      injectionActive: false,
+      contextState: 'running',
+    }),
     close: vi.fn().mockResolvedValue({diagnostics}),
   } as SessionRuntimePort;
 }
