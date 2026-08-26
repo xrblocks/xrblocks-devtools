@@ -137,11 +137,10 @@ function rewriteXrblocksHtmlReferences(
   const rewrittenReferences = html.replace(
     /(["'])([^"']+)(\1)/g,
     (match, openQuote: string, importValue: string, closeQuote: string) => {
-      const vendorValue = xrblocksVendorReferenceValue(
-        importValue,
-        sourceHtmlDir,
-        runtime
-      );
+      if (importValue.startsWith('./vendor/')) return match;
+      const vendorValue =
+        nodeModulesVendorReferenceValue(importValue) ??
+        xrblocksVendorReferenceValue(importValue, sourceHtmlDir, runtime);
       return vendorValue ? `${openQuote}${vendorValue}${closeQuote}` : match;
     }
   );
@@ -170,6 +169,12 @@ function rewriteXrblocksImportMapValues(html: string, runtime: RuntimeAssets) {
       return `${openTag}\n${JSON.stringify(importMap, null, 2)}\n${closeTag}`;
     }
   );
+}
+
+function nodeModulesVendorReferenceValue(importValue: string) {
+  const localPrefix = './node_modules/';
+  if (!importValue.startsWith(localPrefix)) return undefined;
+  return `${NODE_MODULES_VENDOR_ROOT}/${importValue.slice(localPrefix.length)}`;
 }
 
 function xrblocksVendorReferenceValue(
