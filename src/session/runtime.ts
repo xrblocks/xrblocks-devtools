@@ -142,7 +142,7 @@ class SessionRuntime implements SessionRuntimePort {
       args: getChromiumLaunchArgs(),
     });
     signal?.throwIfAborted();
-    const viewport = this.options.viewport ?? {width: 800, height: 600};
+    const viewport = this.options.viewport ?? {width: 1280, height: 960};
     const contextOptions: Parameters<Browser['newContext']>[0] = {viewport};
     if (this.recorder?.browserVideo) {
       contextOptions.recordVideo = {

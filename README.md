@@ -395,7 +395,7 @@ simple `recording` name. Each `session.act()` call records a JSONL trajectory
 and extracted observation images under the test artifact directory.
 
 Session tests can set `viewport: {width, height}` for the browser. The browser
-viewport defaults to `800 × 600`.
+viewport defaults to `1280 × 960`.
 
 Use `scenes` to run a session test against XR Blocks SDK environments or custom
 simulator manifests. SDK environments use their display names. Manifest paths
