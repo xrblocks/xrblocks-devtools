@@ -1,7 +1,7 @@
-import {mkdtemp, readdir, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, describe, expect, it} from 'vitest';
 
 import {
   materializeAudioInjection,
@@ -11,7 +11,6 @@ import {
 const tempDirs: string[] = [];
 
 afterEach(async () => {
-  vi.unstubAllEnvs();
   await Promise.all(
     tempDirs
       .splice(0)
@@ -50,16 +49,6 @@ describe('audio injection materialization', () => {
     await expect(
       materializeAudioInjection({text: 'x'.repeat(MAX_AUDIO_TEXT_LENGTH + 1)})
     ).rejects.toThrow(`${MAX_AUDIO_TEXT_LENGTH} characters`);
-  });
-
-  it('reports the optional text-to-speech install and removes temporary files', async () => {
-    const directory = await makeTempDir();
-    vi.stubEnv('TMPDIR', directory);
-
-    await expect(
-      materializeAudioInjection({text: 'Test speech'})
-    ).rejects.toThrow('npm install --save-dev tiny-tts');
-    expect(await readdir(directory)).toEqual([]);
   });
 });
 

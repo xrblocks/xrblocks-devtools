@@ -3,6 +3,13 @@ import * as THREE from 'three';
 import {describe, expect, it, vi} from 'vitest';
 
 import {injectedHarnessSource} from '../../src/session/injected-source.js';
+import type {XRBlocksSession} from '../../src/session/index.js';
+import {
+  expectNotVisible,
+  expectRenderStateChanged,
+  expectVisible,
+} from '../../src/test/output-expectations.js';
+import type {OutputSnapshot} from '../../src/test/output-types.js';
 
 type InjectedWindow = {
   THREE?: typeof THREE;
@@ -22,6 +29,11 @@ type InjectedWindow = {
       state?: Array<Record<string, unknown>>;
       spatial?: Array<Record<string, unknown>>;
     };
+    inspectOutputVisibility(target: {tag: string; id?: string}): Promise<{
+      exists: boolean;
+      visible: boolean;
+    }>;
+    captureOutputSnapshot(options?: {tags?: string[]}): Promise<OutputSnapshot>;
     navigateTo(target: [number, number, number]): Promise<unknown>;
     init(options?: object): Promise<unknown>;
     addSimulatorObjects(
@@ -128,6 +140,70 @@ describe('injected Devtools runtime', () => {
     expect(calls).toEqual([
       {semanticTree: true, visibleObjects: true, setOfMark: true},
     ]);
+  });
+
+  it('uses display state for visible and not-visible expectations', async () => {
+    const scene = new THREE.Scene();
+    const target = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial()
+    );
+    target.userData.xrblocksDevtools = {tag: 'result'};
+    scene.add(target);
+    const runtime = await installHarness(testWindow(scene));
+    const session = {
+      invoke(method: string, selector: {tag: string; id?: string}) {
+        if (method !== 'inspectOutputVisibility') {
+          throw new Error(`Unexpected runtime method: ${method}`);
+        }
+        return runtime.inspectOutputVisibility(selector);
+      },
+    } as unknown as XRBlocksSession;
+
+    const snapshot = await runtime.captureOutputSnapshot({tags: ['result']});
+    expect(snapshot).toEqual({
+      outputs: [
+        expect.objectContaining({
+          id: target.uuid,
+          render: expect.objectContaining({
+            displayed: true,
+          }),
+        }),
+      ],
+      surfaces: [],
+    });
+
+    await expect(expectVisible(session, 'result')).resolves.toBeUndefined();
+    await expect(expectNotVisible(session, 'result')).rejects.toThrow(
+      'result is visible'
+    );
+
+    const blocker = new THREE.Mesh(
+      new THREE.BoxGeometry(3, 3, 0.2),
+      new THREE.MeshBasicMaterial()
+    );
+    blocker.name = 'wall';
+    blocker.position.z = 2;
+    scene.add(blocker);
+
+    await expect(expectVisible(session, 'result')).resolves.toBeUndefined();
+    target.visible = false;
+    const hiddenSnapshot = await runtime.captureOutputSnapshot({
+      tags: ['result'],
+    });
+    expect(() =>
+      expectRenderStateChanged(snapshot, hiddenSnapshot, 'result', [
+        'visibility',
+      ])
+    ).not.toThrow();
+    target.visible = true;
+    target.material.transparent = true;
+    target.material.opacity = 0;
+
+    await expect(expectVisible(session, 'result')).rejects.toThrow(
+      'no displayed geometry'
+    );
+    await expect(expectNotVisible(session, 'result')).resolves.toBeUndefined();
   });
 
   it('navigates through the XR Blocks simulator', async () => {

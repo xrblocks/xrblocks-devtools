@@ -184,5 +184,3 @@ export type SessionSimulator = {
   clearObjects(): Promise<void>;
   getObjects(ids?: string[]): Promise<SimulatorObjectRecord[]>;
 };
-
-export type {AudioInjection, AudioInjectionResult} from './audio.js';

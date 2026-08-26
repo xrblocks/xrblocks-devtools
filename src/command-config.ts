@@ -91,11 +91,11 @@ const sessionFlags = [
 ] as const;
 
 const recordingFlags = [
-  flag('record-video', 'string', 'Record action windows to MP4', 'path'),
+  flag('record-video', 'string', 'Record Playwright video', 'path'),
   flag(
-    'record-video-timeline',
+    'record-checkpoints',
     'string',
-    'Write the video timeline to a custom path',
+    'Record one frame per action to MP4',
     'path'
   ),
   flag(
@@ -104,8 +104,13 @@ const recordingFlags = [
     'Keep padding around each recorded action',
     'ms'
   ),
+  flag(
+    'record-video-scope',
+    'string',
+    'Select actions, scene, or full video',
+    'scope'
+  ),
   flag('keep-raw-video', 'boolean', 'Keep the raw Playwright WebM'),
-  flag('no-trim-video', 'boolean', 'Do not trim the Playwright video'),
 ] as const;
 
 const definitions: Record<CommandName, CommandDefinition> = {
@@ -383,7 +388,7 @@ function sessionConfig(
     simulatorNavMesh: trueValue(flags, 'simulator-navmesh'),
     embodiedControlImport: stringValue(flags, 'embodied-control-import'),
     timeoutMs: numberValue(flags, 'timeout-ms'),
-    recordVideo: recordVideo(flags),
+    recording: recording(flags),
     recordAgent: stringValue(flags, 'record-agent')
       ? {outDir: stringValue(flags, 'record-agent')!}
       : undefined,
@@ -412,16 +417,44 @@ function appInput(flags: FlagValues, command: CommandName) {
   return {appDir: appDir!, xrblocksRoot, entry};
 }
 
-function recordVideo(flags: FlagValues) {
-  const out = stringValue(flags, 'record-video');
-  if (!out) return undefined;
+function recording(flags: FlagValues) {
+  const video = stringValue(flags, 'record-video');
+  const checkpoints = stringValue(flags, 'record-checkpoints');
+  const hasVideoOptions =
+    flags['record-video-padding-ms'] !== undefined ||
+    flags['record-video-scope'] !== undefined ||
+    Boolean(flags['keep-raw-video']);
+  if (video && checkpoints)
+    throw new Error('Use --record-video or --record-checkpoints, not both.');
+  if (!video && hasVideoOptions)
+    throw new Error('Video recording options require --record-video.');
+  if (checkpoints) {
+    return {
+      mode: 'checkpoints' as const,
+      out: checkpoints,
+    };
+  }
+  if (!video) return undefined;
+  const scope = videoScope(flags);
+  const paddingMs = numberValue(flags, 'record-video-padding-ms');
+  if (scope !== 'actions' && flags['record-video-padding-ms'] !== undefined)
+    throw new Error('--record-video-padding-ms requires action video scope.');
+  if (scope === 'full' && flags['keep-raw-video'])
+    throw new Error('--keep-raw-video is not available with full video scope.');
   return {
-    out,
-    timelineOut: stringValue(flags, 'record-video-timeline'),
-    trim: !flags['no-trim-video'],
-    keepRaw: Boolean(flags['keep-raw-video']),
-    paddingMs: numberValue(flags, 'record-video-padding-ms'),
+    mode: 'video' as const,
+    out: video,
+    scope,
+    ...(flags['keep-raw-video'] ? {keepRaw: true} : {}),
+    ...(paddingMs === undefined ? {} : {paddingMs}),
   };
+}
+
+function videoScope(flags: FlagValues): 'actions' | 'scene' | 'full' {
+  const value = stringValue(flags, 'record-video-scope') ?? 'actions';
+  if (value === 'actions' || value === 'scene' || value === 'full')
+    return value;
+  throw new Error('--record-video-scope must be actions, scene, or full.');
 }
 
 function viewPreset(flags: FlagValues): ViewPreset | undefined {

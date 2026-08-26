@@ -1,6 +1,6 @@
 import repl from 'node:repl';
 import path from 'node:path';
-import {writeDataUrl} from './media.js';
+import {mkdir, writeFile} from 'node:fs/promises';
 import {XRBlocksSession, type XRBlocksSessionConfig} from './session/index.js';
 import type {JsonObject} from './types.js';
 
@@ -65,7 +65,7 @@ export async function runInteractive(config: XRBlocksSessionConfig) {
   console.log('Call functions directly. Exit with .exit or Ctrl-D.');
 
   const server = repl.start({prompt: 'xrblocks> ', ignoreUndefined: true});
-  awaitReplPromises(server);
+  const waitForCommands = awaitReplPromises(server);
   installInteractiveContext(server, session);
   const onAbort = () => server.close();
   config.signal?.addEventListener('abort', onAbort, {once: true});
@@ -76,6 +76,7 @@ export async function runInteractive(config: XRBlocksSessionConfig) {
   } finally {
     config.signal?.removeEventListener('abort', onAbort);
     server.close();
+    await waitForCommands();
     await session.close();
   }
 }
@@ -85,6 +86,7 @@ export function installInteractiveContext(
   server: Pick<repl.REPLServer, 'context'>,
   session: XRBlocksSession
 ) {
+  server.context.session = session;
   for (const [name] of sessionCommands) {
     const method = session[name] as (...args: never[]) => unknown;
     server.context[name] = method.bind(session);
@@ -138,6 +140,7 @@ export function interactiveHelpText() {
 }
 
 function awaitReplPromises(server: repl.REPLServer) {
+  const active = new Set<Promise<unknown>>();
   const evaluate = server.eval;
   const evaluateAndWait: repl.REPLEval = function (
     command,
@@ -150,15 +153,28 @@ function awaitReplPromises(server: repl.REPLServer) {
         callback(error, result);
         return;
       }
-      Promise.resolve(result).then(
-        (value) => callback(null, value),
-        (reason) =>
-          callback(
-            reason instanceof Error ? reason : new Error(String(reason)),
-            undefined
-          )
-      );
+      const pending = Promise.resolve(result);
+      active.add(pending);
+      void pending
+        .then(
+          (value) => callback(null, value),
+          (reason) =>
+            callback(
+              reason instanceof Error ? reason : new Error(String(reason)),
+              undefined
+            )
+        )
+        .finally(() => active.delete(pending));
     });
   };
   (server as unknown as {eval: repl.REPLEval}).eval = evaluateAndWait;
+  return async () => {
+    while (active.size > 0) await Promise.allSettled(active);
+  };
+}
+
+async function writeDataUrl(filePath: string, dataUrl: string) {
+  const match = /^data:[^;]+;base64,(.*)$/.exec(dataUrl);
+  await mkdir(path.dirname(filePath), {recursive: true});
+  await writeFile(filePath, Buffer.from(match?.[1] ?? dataUrl, 'base64'));
 }

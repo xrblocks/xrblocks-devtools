@@ -4,7 +4,7 @@ it_session(
   'opens the app for each primary hand',
   {
     switchHands: true,
-    video: 'hand-session',
+    recording: 'hand-session',
     realTime: true,
   },
   async (session, {primaryHand, secondaryHand}) => {

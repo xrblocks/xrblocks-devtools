@@ -38,7 +38,7 @@ npm install --save-dev three-pathfinding # --simulator-navmesh
 
 ### Optional FFmpeg installation
 
-FFmpeg is required to make trimmed down MP4 recordings that remove any non-action pauses:
+FFmpeg is required for checkpoint MP4s, scene-scope MP4s, and action trimming:
 
 ```bash
 # macOS
@@ -55,8 +55,9 @@ executable is on `PATH`. Confirm the installation with:
 ffmpeg -version
 ```
 
-Without FFmpeg, recording still works, but Devtools preserves the complete raw
-WebM instead of producing a trimmed MP4.
+Without FFmpeg, full-scope WebM recording works normally. Action-scope recording
+falls back to the complete raw WebM. Checkpoint and scene-scope recording report
+an error because both must encode an MP4.
 
 ### Install from source
 
@@ -173,10 +174,10 @@ xrblocks-devtools interact (--app-dir <dir> | --url <url>) [options]
 | `--embodied-control-import <module>` | Browser-loadable module specifier or URL for the embodied-control addon. Useful for URL sessions.              |
 | `--timeout-ms <ms>`                  | Browser startup and operation timeout. Default `300000`.                                                       |
 | `--record-video <path>`              | Record action windows. Trimming targets MP4 when ffmpeg is available.                                          |
-| `--record-video-timeline <path>`     | Timeline JSON path. Default `<video-name>.timeline.json`.                                                      |
+| `--record-checkpoints <path>`        | Record the initial frame, each action result, and the final frame.                                             |
 | `--record-video-padding-ms <ms>`     | Time retained before and after actions. Default `500`.                                                         |
+| `--record-video-scope <scope>`       | Keep `actions`, everything after `scene` readiness, or the `full` WebM. Default `actions`.                     |
 | `--keep-raw-video`                   | Preserve Playwright's raw WebM after successful trimming.                                                      |
-| `--no-trim-video`                    | Keep the complete WebM. A non-WebM output name is changed to `.webm`.                                          |
 | `-h`, `--help`                       | Show flags and REPL functions.                                                                                 |
 
 The prompt is a JavaScript REPL. Call functions directly; returned promises are
@@ -271,41 +272,44 @@ it('publishes a texture', () => {
 
 it_session(
   'selects with either hand',
-  {switchHands: true, video: 'selection'},
+  {
+    switchHands: true,
+    recording: 'selection',
+  },
   async (session, {primaryHand}) => {
     await session.click(primaryHand);
   }
 );
 ```
 
-Use tagged-output expectations to verify rendered and spatial results from a
-fixed frame:
+Use tagged-output expectations to verify visible and spatial results:
 
 ```ts
 import {
   captureOutputSnapshot,
-  expectCreatedOrRemoved,
-  expectRenderedTag,
+  expect,
+  expectNotVisible,
   expectSessionHealthy,
-  expectSpecificText,
+  expectVisible,
   it_session,
 } from '@xrblocks/devtools/test';
 
 it_session('opens the settings menu', async (session) => {
-  const before = await captureOutputSnapshot(session);
+  await expectNotVisible(session, 'settings-menu');
   await session.click('right');
-  const after = await captureOutputSnapshot(session);
+  await expectVisible(session, 'settings-menu');
 
-  expectCreatedOrRemoved(before, after, 'settings-menu', {created: 1});
-  expectRenderedTag(after, 'settings-menu');
-  expectSpecificText(after, 'settings-title', 'Settings');
+  const snapshot = await captureOutputSnapshot(session, {
+    tags: ['settings-title'],
+  });
+  expect(snapshot.outputs[0]?.text).toBe('Settings');
   expectSessionHealthy(session);
 });
 ```
 
-Each snapshot records tagged IDs, transforms, bounds, material state, geometry,
-and visible text. Rendered visibility, camera-frame presence, and line of sight
-come from XR Blocks Scene Context. See
+Each snapshot records tagged IDs, transforms, bounds, display state, material
+state, geometry, declared text, and declared paths. Visibility checks use scene hierarchy,
+geometry, material visibility, transparency, and opacity. See
 [Tagged output expectations](docs/output-expectations.md) for all helpers.
 
 When `--xrblocks-root` is set, ordinary tests can import the selected source
@@ -386,13 +390,12 @@ xrblocks-devtools test tests/evaluation.ts --app ./app [options]
 Each test run contributes equally to the score. Hand and scene variants count
 as separate test runs. Set `required: true` to make any failed variant set the
 score to `0`. Session tests receive the complete `XRBlocksSession`. `realTime`
-defaults to `false`. A session test records video only when its options include a
-simple `video` name. Each `session.act()` call records a JSONL trajectory and
-extracted observation images under the test artifact directory.
+defaults to `false`. A session test records only when its options include a
+simple `recording` name. Each `session.act()` call records a JSONL trajectory
+and extracted observation images under the test artifact directory.
 
-Session tests can set `viewport: {width, height}` for the browser and
-`videoSize: {width, height}` for the recording. The browser viewport defaults
-to `800 × 600`. The video size defaults to the browser viewport.
+Session tests can set `viewport: {width, height}` for the browser. The browser
+viewport defaults to `800 × 600`.
 
 Use `scenes` to run a session test against XR Blocks SDK environments or custom
 simulator manifests. SDK environments use their display names. Manifest paths
@@ -523,11 +526,47 @@ Session accepts exactly one of `appDir` and `url`. App-directory sessions can
 also set `xrblocksRoot` and `entry`. Shared options are `headless`, `timeoutMs`,
 `viewport` in pixels, `realTime`, `monitorAudio`, `simulatorReachLimit`,
 `simulatorNavMesh`,
-`embodiedControlImport`, `recordVideo`, `recordAgent`, and `signal`.
+`embodiedControlImport`, `recording`, `recordAgent`, and `signal`.
 
 URL sessions bypass workspace injection. Their page must expose XR Blocks debug
 state through `?xrAutomation=1&debug=1` and resolve the embodied-control addon.
 Set `embodiedControlImport` to a browser-loadable URL when needed.
+
+Session recording has two modes:
+
+```ts
+const checkpoints = await XRBlocksSession.open({
+  appDir: './app',
+  recording: {mode: 'checkpoints', out: './artifacts/run.mp4'},
+});
+
+const motion = await XRBlocksSession.open({
+  appDir: './app',
+  recording: {
+    mode: 'video',
+    out: './artifacts/run.mp4',
+    scope: 'actions',
+    paddingMs: 500,
+  },
+});
+```
+
+`checkpoints` captures the initial page, the result of every Session action,
+and the final page. `video` uses Playwright video. Its `scope` is `actions` by
+default, `scene` keeps continuous video after scene readiness, and `full` keeps
+the complete WebM. `session.close()` returns `{diagnostics, recording,
+agentRuns}`. The recording result contains the actual `videoPath` and its
+automatically derived `manifestPath`.
+
+Action-scope video does not require a separate input file. The recorder measures
+each Session action in memory while Playwright records the page. On close, it adds
+the configured padding, merges overlapping action windows, and gives the
+resulting segments directly to FFmpeg. FFmpeg selects those frames,
+and `setpts` removes the gaps between segments without dropping frames inside
+an action window. DevTools then writes `<video-name>.recording.json` as an
+output record of the actions, merged segments, selected scope, actual video
+path, and any raw fallback. The manifest is evidence about the completed
+recording, not an input needed to trim it.
 
 ### Developer metadata (tags and state)
 

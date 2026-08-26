@@ -40,12 +40,11 @@ export interface XRBlocksTestOptions extends VitestOptions {
 export interface SessionTestOptions extends XRBlocksTestOptions {
   switchHands?: boolean;
   scenes?: SceneVariant[];
-  video?: string;
+  /** Record the initial state, each action result, and the final state. */
+  recording?: string;
   realTime?: boolean;
   /** Browser viewport dimensions in pixels. */
   viewport?: Viewport;
-  /** Recorded video dimensions in pixels. Defaults to the browser viewport. */
-  videoSize?: Viewport;
   /** Load and enforce the active simulator environment navmesh. */
   simulatorNavMesh?: boolean;
   simulatorObjects?: SimulatorObjectInput[];
@@ -112,16 +111,7 @@ export function it_session(
   if (!callback) throw new TypeError(`Session test ${name} needs a callback.`);
 
   const plan = planSessionRuns(name, options);
-  const {
-    switchHands: _switchHands,
-    scenes: _scenes,
-    video: _video,
-    realTime: _realTime,
-    viewport: _viewport,
-    videoSize: _videoSize,
-    simulatorNavMesh: _simulatorNavMesh,
-    ...sharedOptions
-  } = options;
+  const sharedOptions = sessionVitestOptions(options);
   for (const run of plan.runs) {
     const meta: XRBlocksTestMeta = {
       schemaVersion: 1,
@@ -146,21 +136,26 @@ export function it_session(
         meta
       ),
       async (context) => {
-        await runSessionTest(
-          callback,
-          run,
-          context,
-          meta,
-          options.video,
-          options.realTime ?? false,
-          options.viewport,
-          options.videoSize,
-          options.simulatorNavMesh,
-          options.simulatorObjects
-        );
+        await runSessionTest({callback, run, context, meta, options});
       }
     );
   }
+}
+
+function sessionVitestOptions(
+  options: SessionTestOptions
+): XRBlocksTestOptions {
+  const {
+    switchHands: _switchHands,
+    scenes: _scenes,
+    recording: _recording,
+    realTime: _realTime,
+    viewport: _viewport,
+    simulatorNavMesh: _simulatorNavMesh,
+    simulatorObjects: _simulatorObjects,
+    ...vitestOptions
+  } = options;
+  return vitestOptions;
 }
 
 function makeIt(base: VitestItCall): XRBlocksItCall {
@@ -200,7 +195,7 @@ function registerPlainTest(
 
 interface PlannedSessionRun extends SessionTestRun {
   id: string;
-  videoSuffix: string;
+  artifactSuffix: string;
 }
 
 function planSessionRuns(
@@ -217,7 +212,7 @@ function planSessionRuns(
   const hands: PhysicalHand[] = switchHands ? ['right', 'left'] : ['right'];
 
   const scenes = normalizeScenes(name, options.scenes);
-  validateVideoName(name, options.video);
+  validateRecordingName(name, options.recording);
   if (options.realTime !== undefined && typeof options.realTime !== 'boolean')
     throw new TypeError(`Session test ${name} realTime must be a Boolean.`);
   const required = options.required ?? false;
@@ -233,7 +228,7 @@ function planSessionRuns(
         primaryHand,
         secondaryHand: primaryHand === 'right' ? 'left' : 'right',
         scene,
-        videoSuffix: suffixes.length > 0 ? `-${suffixes.join('-')}` : '',
+        artifactSuffix: suffixes.length > 0 ? `-${suffixes.join('-')}` : '',
       });
     }
   }
@@ -266,25 +261,25 @@ function normalizeScenes(
   return scenes;
 }
 
-async function runSessionTest(
-  callback: SessionTestFunction,
-  run: PlannedSessionRun,
-  context: TestContext,
-  meta: XRBlocksTestMeta,
-  videoName: string | undefined,
-  realTime: boolean,
-  viewport: Viewport | undefined,
-  videoSize: Viewport | undefined,
-  simulatorNavMesh?: boolean,
-  simulatorObjects?: SimulatorObjectInput[]
-): Promise<void> {
+async function runSessionTest({
+  callback,
+  run,
+  context,
+  meta,
+  options,
+}: {
+  callback: SessionTestFunction;
+  run: PlannedSessionRun;
+  context: TestContext;
+  meta: XRBlocksTestMeta;
+  options: SessionTestOptions;
+}): Promise<void> {
   const provided = inject('xrblocksTest');
-  const videoStem = videoName ? `${videoName}${run.videoSuffix}` : undefined;
-  const videoOut = videoStem
-    ? path.join(provided.artifactDir, `${videoStem}.mp4`)
+  const recordingStem = options.recording
+    ? `${options.recording}${run.artifactSuffix}`
     : undefined;
-  const timelineOut = videoStem
-    ? path.join(provided.artifactDir, `${videoStem}.timeline.json`)
+  const videoOut = recordingStem
+    ? path.join(provided.artifactDir, `${recordingStem}.mp4`)
     : undefined;
   let session: XRBlocksSession;
   try {
@@ -292,41 +287,19 @@ async function runSessionTest(
       appDir: provided.appDir,
       xrblocksRoot: provided.xrblocksRoot,
       entry: provided.entry,
-      realTime,
-      viewport,
-      recordVideo:
-        videoOut && timelineOut
-          ? {
-              out: videoOut,
-              timelineOut,
-              trim: true,
-              paddingMs: 500,
-              size: videoSize,
-            }
-          : undefined,
+      realTime: options.realTime ?? false,
+      viewport: options.viewport,
+      recording: videoOut ? {mode: 'checkpoints', out: videoOut} : undefined,
       recordAgent: {
         outDir: path.join(
           provided.artifactDir,
           'agent',
           `${meta.logicalId}-${shortHash(meta.runId)}`
         ),
-        onResult(result) {
-          if (!result.artifacts) return;
-          (meta.agentRuns ??= []).push({
-            status: result.status,
-            trajectory: relativeArtifactPath(
-              provided.artifactDir,
-              result.artifacts.trajectoryPath
-            ),
-            images: result.artifacts.imagePaths.map((image) =>
-              relativeArtifactPath(provided.artifactDir, image)
-            ),
-          });
-        },
       },
       timeoutMs: provided.sessionTimeoutMs,
-      simulatorNavMesh,
-      simulatorObjects,
+      simulatorNavMesh: options.simulatorNavMesh,
+      simulatorObjects: options.simulatorObjects,
       signal: context.signal,
     });
   } catch (error) {
@@ -374,17 +347,30 @@ async function runSessionTest(
   }
 
   try {
-    await session.close();
-    meta.diagnostics = session.diagnostics;
-    if (session.videoTimeline) {
-      meta.video = relativeArtifactPath(
+    const result = await session.close();
+    meta.diagnostics = result.diagnostics;
+    meta.agentRuns = result.agentRuns.map(({status, artifacts}) => ({
+      status,
+      trajectory: relativeArtifactPath(
         provided.artifactDir,
-        session.videoTimeline.outputVideoPath
-      );
-      meta.videoTimeline = relativeArtifactPath(
-        provided.artifactDir,
-        timelineOut!
-      );
+        artifacts.trajectoryPath
+      ),
+      images: artifacts.imagePaths.map((image) =>
+        relativeArtifactPath(provided.artifactDir, image)
+      ),
+    }));
+    if (result.recording) {
+      meta.recording = {
+        mode: result.recording.mode,
+        videoPath: relativeArtifactPath(
+          provided.artifactDir,
+          result.recording.videoPath
+        ),
+        manifestPath: relativeArtifactPath(
+          provided.artifactDir,
+          result.recording.manifestPath
+        ),
+      };
     }
   } catch (error) {
     throw new XRBlocksTestFailure(
@@ -425,12 +411,12 @@ function testOptions(
   };
 }
 
-const VIDEO_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+const RECORDING_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
-function validateVideoName(name: string, video: string | undefined): void {
-  if (video !== undefined && !VIDEO_NAME.test(video))
+function validateRecordingName(name: string, value: string | undefined): void {
+  if (value !== undefined && !RECORDING_NAME.test(value))
     throw new TypeError(
-      `Session test ${name} video must be a simple name matching ${VIDEO_NAME.source}.`
+      `Session test ${name} recording name must match ${RECORDING_NAME.source}.`
     );
 }
 
