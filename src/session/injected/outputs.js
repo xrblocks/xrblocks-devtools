@@ -75,7 +75,8 @@ function resolveOutputSelectorObjects(target) {
 }
 
 function outputIsDisplayed(root) {
-  return displayedRenderables(root).length > 0;
+  const presentation = window.xb.getUIPresentationObject(root);
+  return displayedRenderables(presentation ?? root).length > 0;
 }
 
 function displayedRenderables(root) {
