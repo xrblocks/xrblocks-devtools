@@ -1,7 +1,7 @@
 import type {LanguageModel} from 'ai';
 
 export const DEFAULT_AI_MODEL = 'gemini-3.6-flash';
-export const DEFAULT_AI_MAX_RETRIES = 3;
+export const DEFAULT_AI_MAX_RETRIES = 6;
 
 const DEFAULT_AI_TIMEOUT_MS = 40_000;
 const AI_PROVIDER_ENV = 'XRBLOCKS_DEV_TOOLS_AI_PROVIDER';

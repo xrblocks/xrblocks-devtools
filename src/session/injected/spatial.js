@@ -1,7 +1,10 @@
 function spatialMeasurement(object) {
   object.updateWorldMatrix?.(true, true);
   object.updateMatrixWorld?.(true);
-  const bounds = visibleRenderableBounds(object);
+  const renderableRoot = outputPresentationObject(object);
+  renderableRoot.updateWorldMatrix?.(true, true);
+  renderableRoot.updateMatrixWorld?.(true);
+  const bounds = visibleRenderableBounds(renderableRoot);
   return {
     pose: objectTransform(object, 'world'),
     hasRenderableContent: bounds !== null,
@@ -11,11 +14,13 @@ function spatialMeasurement(object) {
 
 function viewMeasurement(object) {
   const spatial = spatialMeasurement(object);
+  const renderableRoot = outputPresentationObject(object);
   const camera = measurementCamera();
   camera.updateProjectionMatrix?.();
   camera.updateWorldMatrix?.(true, false);
   camera.updateMatrixWorld?.(true);
-  const effectivelyVisible = effectiveVisibility(object);
+  const effectivelyVisible =
+    effectiveVisibility(object) && effectiveVisibility(renderableRoot);
   const hasVisibleRenderableContent = effectivelyVisible && spatial.hasRenderableContent;
   const cameraPosition = worldPosition(camera);
   const inFrustum =
@@ -37,6 +42,10 @@ function viewMeasurement(object) {
       ? pointBoundsDistance(cameraPosition, spatial.bounds)
       : null,
   };
+}
+
+function outputPresentationObject(object) {
+  return window.xb?.getUIPresentationObject?.(object) ?? object;
 }
 
 function visibleRenderableBounds(root) {

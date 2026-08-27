@@ -53,7 +53,7 @@ export interface JudgeOptions {
   /** Custom schema. It must retain boolean verdict and string reason fields. */
   schema?: Record<string, unknown>;
   model?: string;
-  /** Retry limit for transient model errors. Defaults to 3. */
+  /** Retry limit for transient model errors. Defaults to 6. */
   maxRetries?: number;
   /** Maximum duration of each Google AI request. Defaults to 40 seconds. */
   timeoutMs?: number;

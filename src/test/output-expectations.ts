@@ -161,7 +161,7 @@ export function expectOnSurface(
   snapshot: OutputSnapshot,
   target: OutputSelector,
   options: {
-    surface?: {id?: string; label?: string};
+    surface?: {id?: string; kind?: 'plane' | 'mesh'; label?: string};
     toleranceMeters?: number;
   } = {}
 ): void {
@@ -170,24 +170,30 @@ export function expectOnSurface(
   const candidates = snapshot.surfaces.filter(
     (surface) =>
       (!options.surface?.id || surface.id === options.surface.id) &&
+      (!options.surface?.kind || surface.kind === options.surface.kind) &&
       (!options.surface?.label || surface.label === options.surface.label)
   );
   if (candidates.length === 0) fail('No matching sensed surface was found.');
 
   const tolerance = options.toleranceMeters ?? 0.02;
   const samples = [bounds.center, ...boundsCorners(bounds)];
-  const matches = candidates.some((surface) =>
-    samples.some(
+  const matches = candidates.some((surface) => {
+    if (surface.kind === 'mesh') {
+      return (surface.distanceByOutputId?.[output.id] ?? Infinity) <= tolerance;
+    }
+    if (!surface.normal) return false;
+    const surfaceNormal = surface.normal;
+    return samples.some(
       (point) =>
         Math.abs(
           toVector3(point)
             .sub(toVector3(surface.position))
-            .dot(toVector3(surface.normal))
+            .dot(toVector3(surfaceNormal))
         ) <= tolerance &&
         (!surface.bounds ||
           pointBoundsDistance(point, surface.bounds) <= tolerance)
-    )
-  );
+    );
+  });
   if (!matches) {
     fail(
       `${outputLabel(output)} is not within ${tolerance} meters of a matching sensed surface.`
@@ -221,7 +227,7 @@ function changedFields(
   if (before.render.displayed !== after.render.displayed) {
     fields.push('visibility');
   }
-  if (materialProperty(before, 'color') !== materialProperty(after, 'color')) {
+  if (colorState(before) !== colorState(after)) {
     fields.push('color');
   }
   if (
@@ -245,6 +251,15 @@ function changedFields(
   }
   if (before.text !== after.text) fields.push('text');
   return fields;
+}
+
+function colorState(output: OutputRecord): string {
+  return JSON.stringify(
+    output.render.renderables.map((renderable) => ({
+      materials: renderable.materials.map((material) => material.color),
+      vertexColors: renderable.vertexColors,
+    }))
+  );
 }
 
 function materialProperty(

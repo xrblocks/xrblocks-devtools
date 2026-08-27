@@ -37,6 +37,7 @@ export interface JudgeTrajectoryOptions {
   /** Custom schema. It must retain boolean verdict and string reason fields. */
   schema?: Record<string, unknown>;
   model?: string;
+  /** Retry limit for transient model errors. Defaults to 6. */
   maxRetries?: number;
   timeoutMs?: number;
   signal?: AbortSignal;

@@ -695,7 +695,7 @@ data.
 ```ts
 const result = await session.act('Select the red cube.', {
   maxTurns: 20,
-  maxRetries: 3,
+  maxRetries: 6,
   timeoutMs: 40_000,
 });
 

@@ -22,12 +22,22 @@ export type OutputMaterialSnapshot = {
   side: number | null;
   depthTest: boolean;
   depthWrite: boolean;
+  vertexColors: boolean;
+};
+
+export type OutputVertexColorSnapshot = {
+  count: number;
+  averageRgb: Vec3Tuple;
+  averageHslSaturation: number;
+  minimumHslSaturation: number;
+  maximumHslSaturation: number;
 };
 
 export type OutputRenderableSnapshot = {
   objectId: string;
   hasGeometry: boolean;
   geometry: string;
+  vertexColors: OutputVertexColorSnapshot | null;
   materials: OutputMaterialSnapshot[];
 };
 
@@ -47,10 +57,12 @@ export type OutputRecord = {
 
 export type OutputSurfaceSnapshot = {
   id: string;
+  kind: 'plane' | 'mesh';
   label?: string;
   position: Vec3Tuple;
-  normal: Vec3Tuple;
+  normal?: Vec3Tuple;
   bounds: OutputBounds | null;
+  distanceByOutputId?: Record<string, number>;
 };
 
 export type OutputSnapshot = {

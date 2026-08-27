@@ -352,7 +352,10 @@ window.__xrblocksDevtoolsRuntime = {
   },
   ...observations,
   async teleportTo(target, options) {
-    await getEmbodiedControl().teleportTo(resolveTarget(target), options);
+    await getEmbodiedControl().teleportTo(
+      await resolveInteractionTarget(target),
+      options
+    );
     return {completed: true};
   },
   async stepControl(step) {
@@ -368,19 +371,22 @@ window.__xrblocksDevtoolsRuntime = {
   startSelect: (handIndex = 1) => setSelecting(handIndex, true),
   endSelect: (handIndex = 1) => setSelecting(handIndex, false),
   async lookAtTarget(target, options) {
-    await getEmbodiedControl().lookAtTarget(resolveTarget(target), options);
+    await getEmbodiedControl().lookAtTarget(
+      await resolveInteractionTarget(target),
+      options
+    );
     return {completed: true};
   },
   async pointTo(handIndex, target, options) {
     await getEmbodiedControl().pointTo(
       handIndex,
-      resolveTarget(target),
+      await resolveInteractionTarget(target),
       options
     );
     return {completed: true};
   },
   async reachTo(handIndex, target, options) {
-    const resolvedTarget = resolveTarget(target);
+    const resolvedTarget = await resolveInteractionTarget(target);
     assertReachTarget(handIndex, resolvedTarget);
     await getEmbodiedControl().reachTo(handIndex, resolvedTarget, options);
     return {completed: true};

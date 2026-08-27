@@ -102,6 +102,35 @@ function resolveTarget(target) {
   return object;
 }
 
+async function resolveInteractionTarget(target) {
+  const resolved = resolveTarget(target);
+  if (Array.isArray(resolved)) return resolved;
+  const presentation = window.xb?.getUIPresentationObject?.(resolved);
+  if (presentation) return presentation;
+
+  const UIElement = window.xb?.UIElement;
+  if (typeof UIElement !== 'function' || !(resolved instanceof UIElement)) {
+    return resolved;
+  }
+
+  const pendingPresentation = new Promise((resolve) => {
+    const poll = () => {
+      const current = window.xb?.getUIPresentationObject?.(resolved);
+      if (current) {
+        resolve(current);
+        return;
+      }
+      setTimeout(poll, 0);
+    };
+    poll();
+  });
+  return awaitWithRenderFrames(
+    pendingPresentation,
+    'UI target presentation',
+    2_000
+  );
+}
+
 function getEmbodiedControl() {
   const embodiedControl = window.__xrblocksDevtoolsEmbodiedControl;
   if (!embodiedControl) {

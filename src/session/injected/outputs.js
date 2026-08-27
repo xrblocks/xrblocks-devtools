@@ -23,7 +23,7 @@ async function captureOutputSnapshot(options = {}) {
 
   return {
     outputs,
-    surfaces: serializeDetectedSurfaces(three),
+    surfaces: serializeDetectedSurfaces(three, outputs),
   };
 }
 
@@ -31,7 +31,8 @@ function serializeOutputRecord(object, tag, three) {
   object.updateWorldMatrix?.(true, true);
   object.updateMatrixWorld?.(true);
   const spatial = spatialMeasurement(object);
-  const renderables = serializeRenderables(object);
+  const presentation = outputPresentationObject(object);
+  const renderables = serializeRenderables(presentation);
   return {
     id: object.uuid,
     tag,
@@ -43,7 +44,7 @@ function serializeOutputRecord(object, tag, three) {
       renderables,
     },
     text: visibleOutputText(object),
-    path: outputPath(object, three),
+    path: outputPath(object, presentation, three),
   };
 }
 
@@ -75,8 +76,10 @@ function resolveOutputSelectorObjects(target) {
 }
 
 function outputIsDisplayed(root) {
-  const presentation = window.xb.getUIPresentationObject(root);
-  return displayedRenderables(presentation ?? root).length > 0;
+  return (
+    objectVisibleInScene(root) &&
+    displayedRenderables(outputPresentationObject(root)).length > 0
+  );
 }
 
 function displayedRenderables(root) {
@@ -132,6 +135,7 @@ function serializeRenderables(root) {
       objectId: object.uuid,
       hasGeometry,
       geometry: geometryFingerprint(geometry),
+      vertexColors: serializeVertexColors(geometry?.attributes?.color),
       materials: materialState,
     });
   });
@@ -159,7 +163,45 @@ function serializeMaterial(material) {
     side: finiteOrNull(material.side),
     depthTest: material.depthTest !== false,
     depthWrite: material.depthWrite !== false,
+    vertexColors: material.vertexColors === true,
   };
+}
+
+function serializeVertexColors(attribute) {
+  if (!attribute || attribute.count === 0 || attribute.itemSize < 3) {
+    return null;
+  }
+  const averageRgb = [0, 0, 0];
+  let saturationTotal = 0;
+  let minimumSaturation = Infinity;
+  let maximumSaturation = -Infinity;
+  for (let index = 0; index < attribute.count; index += 1) {
+    const red = attribute.getX(index);
+    const green = attribute.getY(index);
+    const blue = attribute.getZ(index);
+    averageRgb[0] += red;
+    averageRgb[1] += green;
+    averageRgb[2] += blue;
+    const saturation = hslSaturation(red, green, blue);
+    saturationTotal += saturation;
+    minimumSaturation = Math.min(minimumSaturation, saturation);
+    maximumSaturation = Math.max(maximumSaturation, saturation);
+  }
+  return {
+    count: attribute.count,
+    averageRgb: averageRgb.map((channel) => channel / attribute.count),
+    averageHslSaturation: saturationTotal / attribute.count,
+    minimumHslSaturation: minimumSaturation,
+    maximumHslSaturation: maximumSaturation,
+  };
+}
+
+function hslSaturation(red, green, blue) {
+  const maximum = Math.max(red, green, blue);
+  const minimum = Math.min(red, green, blue);
+  const lightness = (maximum + minimum) / 2;
+  const denominator = 1 - Math.abs(2 * lightness - 1);
+  return denominator === 0 ? 0 : (maximum - minimum) / denominator;
 }
 
 function outputColor(color) {
@@ -200,13 +242,13 @@ function visibleOutputText(root) {
   return typeof declared === 'string' ? declared : null;
 }
 
-function outputPath(root, three) {
-  const declared = devtoolsMetadata(root)?.output?.path;
+function outputPath(object, renderableRoot, three) {
+  const declared = devtoolsMetadata(object)?.output?.path;
   if (declared?.start && declared?.end) {
     return {start: tuple3(declared.start), end: tuple3(declared.end)};
   }
   let path = null;
-  root.traverse?.((object) => {
+  renderableRoot.traverse?.((object) => {
     if (path) return;
     const position = object.geometry?.attributes?.position;
     if (!position || position.count < 2) return;
@@ -222,9 +264,9 @@ function outputPath(root, three) {
   return path;
 }
 
-function serializeDetectedSurfaces(three) {
+function serializeDetectedSurfaces(three, outputs) {
   const planes = getCore().world?.planes?.get?.() || [];
-  return planes.map((plane) => {
+  const planeSurfaces = planes.map((plane) => {
     plane.updateWorldMatrix?.(true, false);
     plane.updateMatrixWorld?.(true);
     const quaternion = new three.Quaternion();
@@ -232,12 +274,73 @@ function serializeDetectedSurfaces(three) {
     const normal = new three.Vector3(0, 1, 0).applyQuaternion(quaternion);
     return {
       id: plane.uuid,
+      kind: 'plane',
       label: plane.label,
       position: worldPosition(plane),
       normal: tuple3(normal.normalize()),
       bounds: serializeOutputBounds(visibleRenderableBounds(plane)),
     };
   });
+  const detectedMeshes = Array.from(
+    getCore().world?.meshes?.xrMeshToThreeMesh?.values?.() || []
+  );
+  const meshSurfaces = detectedMeshes.map((mesh) => ({
+    id: mesh.uuid,
+    kind: 'mesh',
+    label: mesh.semanticLabel,
+    position: worldPosition(mesh),
+    bounds: serializeOutputBounds(visibleRenderableBounds(mesh)),
+    distanceByOutputId: Object.fromEntries(
+      outputs
+        .filter((output) => output.bounds)
+        .map((output) => [
+          output.id,
+          distanceFromBoundsToMesh(output.bounds, mesh, three),
+        ])
+        .filter((entry) => Number.isFinite(entry[1]))
+    ),
+  }));
+  return [...planeSurfaces, ...meshSurfaces];
+}
+
+function distanceFromBoundsToMesh(bounds, root, three) {
+  const samples = [bounds.center, ...boundsCorners(bounds)].map((point) =>
+    new three.Vector3().fromArray(point)
+  );
+  const first = new three.Vector3();
+  const second = new three.Vector3();
+  const third = new three.Vector3();
+  const closest = new three.Vector3();
+  const triangle = new three.Triangle();
+  let minimumDistanceSquared = Infinity;
+  root.updateWorldMatrix?.(true, true);
+  root.updateMatrixWorld?.(true);
+  root.traverse?.((object) => {
+    const position = object.geometry?.attributes?.position;
+    if (!position) return;
+    const index = object.geometry.index;
+    const count = index?.count ?? position.count;
+    for (let offset = 0; offset + 2 < count; offset += 3) {
+      first
+        .fromBufferAttribute(position, index?.getX(offset) ?? offset)
+        .applyMatrix4(object.matrixWorld);
+      second
+        .fromBufferAttribute(position, index?.getX(offset + 1) ?? offset + 1)
+        .applyMatrix4(object.matrixWorld);
+      third
+        .fromBufferAttribute(position, index?.getX(offset + 2) ?? offset + 2)
+        .applyMatrix4(object.matrixWorld);
+      triangle.set(first, second, third);
+      for (const sample of samples) {
+        triangle.closestPointToPoint(sample, closest);
+        minimumDistanceSquared = Math.min(
+          minimumDistanceSquared,
+          closest.distanceToSquared(sample)
+        );
+      }
+    }
+  });
+  return Math.sqrt(minimumDistanceSquared);
 }
 
 function serializeOutputBounds(bounds) {

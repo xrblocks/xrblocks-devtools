@@ -46,6 +46,7 @@ export type ActOptions = {
   context?: AgentObservationSelection;
   maxTurns?: number;
   model?: string;
+  /** Retry limit for transient model errors. Defaults to 6. */
   maxRetries?: number;
   timeoutMs?: number;
   /** Time to let the app update before each post-action observation. */
