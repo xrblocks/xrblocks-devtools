@@ -6,6 +6,7 @@ import {injectedHarnessSource} from '../../src/session/injected-source.js';
 import type {XRBlocksSession} from '../../src/session/index.js';
 import {
   expectNotVisible,
+  expectOnSurface,
   expectRenderStateChanged,
   expectVisible,
 } from '../../src/test/output-expectations.js';
@@ -204,6 +205,56 @@ describe('injected Devtools runtime', () => {
       'no displayed geometry'
     );
     await expect(expectNotVisible(session, 'result')).resolves.toBeUndefined();
+  });
+
+  it('uses simulator surfaces without app sensing', async () => {
+    const scene = new THREE.Scene();
+    const target = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2));
+    target.position.y = 0.1;
+    target.userData.xrblocksDevtools = {tag: 'result'};
+    scene.add(target);
+
+    const environmentRoot = new THREE.Group();
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 4));
+    floor.name = 'floor';
+    floor.position.y = -0.05;
+    environmentRoot.add(floor);
+
+    const window = testWindow(scene);
+    const simulatorPlane = {
+      type: 'horizontal',
+      label: 'floor-plane',
+      position: new THREE.Vector3(),
+      quaternion: new THREE.Quaternion(),
+      polygon: [
+        new THREE.Vector2(-2, -2),
+        new THREE.Vector2(2, -2),
+        new THREE.Vector2(2, 2),
+        new THREE.Vector2(-2, 2),
+      ],
+    };
+    (
+      window.xb!.core as {simulator: Record<string, unknown>}
+    ).simulator.simulatorScene = {environmentRoot};
+    (
+      window.xb!.core as {simulator: Record<string, unknown>}
+    ).simulator.simulatorWorld = {
+      getSimulatorPlanes: () => [simulatorPlane],
+    };
+    const runtime = await installHarness(window);
+    const snapshot = await runtime.captureOutputSnapshot({tags: ['result']});
+
+    expect(snapshot.surfaces).toEqual([
+      expect.objectContaining({
+        id: 'simulator-plane-0',
+        kind: 'plane',
+        label: 'floor-plane',
+      }),
+      expect.objectContaining({id: floor.uuid, kind: 'mesh', label: 'floor'}),
+    ]);
+    expect(() =>
+      expectOnSurface(snapshot, 'result', {toleranceMeters: 0.01})
+    ).not.toThrow();
   });
 
   it('navigates through the XR Blocks simulator', async () => {

@@ -265,29 +265,45 @@ function outputPath(object, renderableRoot, three) {
 }
 
 function serializeDetectedSurfaces(three, outputs) {
-  const planes = getCore().world?.planes?.get?.() || [];
-  const planeSurfaces = planes.map((plane) => {
-    plane.updateWorldMatrix?.(true, false);
-    plane.updateMatrixWorld?.(true);
-    const quaternion = new three.Quaternion();
-    plane.getWorldQuaternion(quaternion);
-    const normal = new three.Vector3(0, 1, 0).applyQuaternion(quaternion);
-    return {
-      id: plane.uuid,
-      kind: 'plane',
-      label: plane.label,
-      position: worldPosition(plane),
-      normal: tuple3(normal.normalize()),
-      bounds: serializeOutputBounds(visibleRenderableBounds(plane)),
-    };
+  const core = getCore();
+  const simulatorPlanes =
+    core.simulator?.simulatorWorld?.getSimulatorPlanes?.() || [];
+  const planeSurfaces =
+    simulatorPlanes.length > 0
+      ? simulatorPlanes.map((plane, index) =>
+          serializeSimulatorPlane(plane, index, three)
+        )
+      : (core.world?.planes?.get?.() || []).map((plane) => {
+          plane.updateWorldMatrix?.(true, false);
+          plane.updateMatrixWorld?.(true);
+          const quaternion = new three.Quaternion();
+          plane.getWorldQuaternion(quaternion);
+          const normal = new three.Vector3(0, 1, 0).applyQuaternion(quaternion);
+          return {
+            id: plane.uuid,
+            kind: 'plane',
+            label: plane.label,
+            position: worldPosition(plane),
+            normal: tuple3(normal.normalize()),
+            bounds: serializeOutputBounds(visibleRenderableBounds(plane)),
+          };
+        });
+  const simulatorMeshes = [];
+  core.simulator?.simulatorScene?.environmentRoot?.traverse?.((object) => {
+    if (object.isMesh && object.geometry?.attributes?.position) {
+      simulatorMeshes.push(object);
+    }
   });
-  const detectedMeshes = Array.from(
-    getCore().world?.meshes?.xrMeshToThreeMesh?.values?.() || []
-  );
-  const meshSurfaces = detectedMeshes.map((mesh) => ({
+  const meshes =
+    simulatorMeshes.length > 0
+      ? simulatorMeshes
+      : Array.from(
+          core.world?.meshes?.xrMeshToThreeMesh?.values?.() || []
+        );
+  const meshSurfaces = meshes.map((mesh) => ({
     id: mesh.uuid,
     kind: 'mesh',
-    label: mesh.semanticLabel,
+    label: mesh.semanticLabel || mesh.name || undefined,
     position: worldPosition(mesh),
     bounds: serializeOutputBounds(visibleRenderableBounds(mesh)),
     distanceByOutputId: Object.fromEntries(
@@ -301,6 +317,36 @@ function serializeDetectedSurfaces(three, outputs) {
     ),
   }));
   return [...planeSurfaces, ...meshSurfaces];
+}
+
+function serializeSimulatorPlane(plane, index, three) {
+  const normal = new three.Vector3(0, 1, 0)
+    .applyQuaternion(plane.quaternion)
+    .normalize();
+  const points = plane.polygon.map((point) =>
+    new three.Vector3(point.x, 0, point.y)
+      .applyQuaternion(plane.quaternion)
+      .add(plane.position)
+  );
+  const bounds = new three.Box3().setFromPoints(points);
+  const center = bounds.getCenter(new three.Vector3());
+  const size = bounds.getSize(new three.Vector3());
+  return {
+    id: `simulator-plane-${index}`,
+    kind: 'plane',
+    label: plane.label || plane.type,
+    position: tuple3(plane.position),
+    normal: tuple3(normal),
+    bounds:
+      points.length > 0
+        ? {
+            min: tuple3(bounds.min),
+            max: tuple3(bounds.max),
+            center: tuple3(center),
+            size: tuple3(size),
+          }
+        : null,
+  };
 }
 
 function distanceFromBoundsToMesh(bounds, root, three) {
