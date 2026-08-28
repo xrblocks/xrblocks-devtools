@@ -74,6 +74,7 @@ export type AngularSpeedOptions = {
 
 export type LinearSpeedOptions = {
   speedMetersPerSecond?: number;
+  anchor?: 'index-tip' | 'palm-center';
 };
 
 export type BrowserDiagnostics = {

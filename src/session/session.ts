@@ -405,13 +405,18 @@ export class XRBlocksSession {
     );
   }
 
-  teleportHand(hand: PhysicalHand, target: unknown) {
+  teleportHand(
+    hand: PhysicalHand,
+    target: unknown,
+    options: Pick<LinearSpeedOptions, 'anchor'> = {}
+  ) {
     return this.requireRuntime().perform(
       'teleportHand',
-      {hand, target},
+      {hand, target, ...options},
       'reachTo',
       handIndex(hand),
-      target
+      target,
+      options
     );
   }
 
@@ -521,11 +526,11 @@ export class XRBlocksSession {
     );
     return this.requireRuntime().perform(
       'reachTo',
-      {hand, target, speedMetersPerSecond},
+      {hand, target, speedMetersPerSecond, anchor: options.anchor},
       'reachTo',
       handIndex(hand),
       target,
-      {velocity: speedMetersPerSecond}
+      {velocity: speedMetersPerSecond, anchor: options.anchor}
     );
   }
 
