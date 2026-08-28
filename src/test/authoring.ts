@@ -13,7 +13,6 @@ import {
   type TestOptions,
 } from 'vitest';
 import path from 'node:path';
-import {createHash} from 'node:crypto';
 import type {SimulatorEnvironment} from 'xrblocks';
 import {AiUnavailableError} from '../ai.js';
 import {
@@ -290,13 +289,6 @@ async function runSessionTest({
       realTime: options.realTime ?? false,
       viewport: options.viewport,
       recording: videoOut ? {mode: 'checkpoints', out: videoOut} : undefined,
-      recordAgent: {
-        outDir: path.join(
-          provided.artifactDir,
-          'agent',
-          `${meta.logicalId}-${shortHash(meta.runId)}`
-        ),
-      },
       timeoutMs: provided.sessionTimeoutMs,
       simulatorNavMesh: options.simulatorNavMesh,
       simulatorObjects: options.simulatorObjects,
@@ -349,16 +341,6 @@ async function runSessionTest({
   try {
     const result = await session.close();
     meta.diagnostics = result.diagnostics;
-    meta.agentRuns = result.agentRuns.map(({status, artifacts}) => ({
-      status,
-      trajectory: relativeArtifactPath(
-        provided.artifactDir,
-        artifacts.trajectoryPath
-      ),
-      images: artifacts.imagePaths.map((image) =>
-        relativeArtifactPath(provided.artifactDir, image)
-      ),
-    }));
     if (result.recording) {
       meta.recording = {
         mode: result.recording.mode,
@@ -391,10 +373,6 @@ async function runSessionTest({
 function sceneLabel(scene: SceneVariant | undefined): string {
   if (scene === undefined) return 'default';
   return typeof scene === 'string' ? scene : scene.path;
-}
-
-function shortHash(value: string) {
-  return createHash('sha256').update(value).digest('hex').slice(0, 12);
 }
 
 function testOptions(

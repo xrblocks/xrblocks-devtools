@@ -63,6 +63,14 @@ test('runs SDK and manifest scene variants', async (t) => {
   );
 });
 
+test('records session checkpoints without actor artifact folders', async (t) => {
+  const {result} = await run(t, 'session.test.mjs');
+
+  assert.equal(result.status, 'valid');
+  assert.equal(result.passedTests, 2);
+  assert.equal(result.totalTests, 2);
+});
+
 async function run(t, fixture) {
   const outputDir = await mkdtemp(path.join(os.tmpdir(), 'xrblocks-test-'));
   t.after(() => rm(outputDir, {recursive: true, force: true}));

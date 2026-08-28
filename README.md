@@ -391,8 +391,9 @@ Each test run contributes equally to the score. Hand and scene variants count
 as separate test runs. Set `required: true` to make any failed variant set the
 score to `0`. Session tests receive the complete `XRBlocksSession`. `realTime`
 defaults to `false`. A session test records only when its options include a
-simple `recording` name. Each `session.act()` call records a JSONL trajectory
-and extracted observation images under the test artifact directory.
+simple `recording` name. Actor tool actions use the normal Session action path,
+so checkpoint recordings include a frame after each actor action. Session tests
+do not write separate actor trajectory or observation-image artifacts.
 
 Session tests can set `viewport: {width, height}` for the browser. The browser
 viewport defaults to `1280 × 960`.
