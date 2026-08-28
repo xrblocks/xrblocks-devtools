@@ -1,6 +1,6 @@
 import type {JsonObject} from '../types.js';
 
-export const DEFAULT_SESSION_TIMEOUT_MS = 300_000;
+export const DEFAULT_SESSION_TIMEOUT_MS = 600_000;
 
 export type PhysicalHand = 'left' | 'right';
 
