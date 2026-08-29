@@ -209,13 +209,13 @@ describe('injected Devtools runtime', () => {
 
   it('uses simulator surfaces without app sensing', async () => {
     const scene = new THREE.Scene();
-    const target = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2));
+    const target = new THREE.Mesh(new THREE.BoxGeometry(1, 0.2, 1));
     target.position.y = 0.1;
     target.userData.xrblocksDevtools = {tag: 'result'};
     scene.add(target);
 
     const environmentRoot = new THREE.Group();
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 4));
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.2));
     floor.name = 'floor';
     floor.position.y = -0.05;
     environmentRoot.add(floor);
@@ -227,10 +227,10 @@ describe('injected Devtools runtime', () => {
       position: new THREE.Vector3(),
       quaternion: new THREE.Quaternion(),
       polygon: [
-        new THREE.Vector2(-2, -2),
-        new THREE.Vector2(2, -2),
-        new THREE.Vector2(2, 2),
-        new THREE.Vector2(-2, 2),
+        new THREE.Vector2(-0.1, -0.1),
+        new THREE.Vector2(0.1, -0.1),
+        new THREE.Vector2(0.1, 0.1),
+        new THREE.Vector2(-0.1, 0.1),
       ],
     };
     (
@@ -253,7 +253,16 @@ describe('injected Devtools runtime', () => {
       expect.objectContaining({id: floor.uuid, kind: 'mesh', label: 'floor'}),
     ]);
     expect(() =>
-      expectOnSurface(snapshot, 'result', {toleranceMeters: 0.01})
+      expectOnSurface(snapshot, 'result', {
+        surface: {kind: 'plane'},
+        toleranceMeters: 0.01,
+      })
+    ).not.toThrow();
+    expect(() =>
+      expectOnSurface(snapshot, 'result', {
+        surface: {kind: 'mesh'},
+        toleranceMeters: 0.01,
+      })
     ).not.toThrow();
   });
 

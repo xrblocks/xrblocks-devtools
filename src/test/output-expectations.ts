@@ -1,4 +1,4 @@
-import {Box3, Quaternion, Vector3} from 'three';
+import {Box3, Plane, Quaternion, Vector3} from 'three';
 
 import type {XRBlocksSession} from '../session/index.js';
 import type {
@@ -176,22 +176,21 @@ export function expectOnSurface(
   if (candidates.length === 0) fail('No matching sensed surface was found.');
 
   const tolerance = options.toleranceMeters ?? 0.02;
-  const samples = [bounds.center, ...boundsCorners(bounds)];
   const matches = candidates.some((surface) => {
     if (surface.kind === 'mesh') {
       return (surface.distanceByOutputId?.[output.id] ?? Infinity) <= tolerance;
     }
     if (!surface.normal) return false;
-    const surfaceNormal = surface.normal;
-    return samples.some(
-      (point) =>
-        Math.abs(
-          toVector3(point)
-            .sub(toVector3(surface.position))
-            .dot(toVector3(surfaceNormal))
-        ) <= tolerance &&
-        (!surface.bounds ||
-          pointBoundsDistance(point, surface.bounds) <= tolerance)
+    const normal = toVector3(surface.normal);
+    if (normal.lengthSq() === 0) return false;
+    const expandedBounds = toBox3(bounds).expandByScalar(tolerance);
+    const plane = new Plane().setFromNormalAndCoplanarPoint(
+      normal.normalize(),
+      toVector3(surface.position)
+    );
+    return (
+      expandedBounds.intersectsPlane(plane) &&
+      (!surface.bounds || expandedBounds.intersectsBox(toBox3(surface.bounds)))
     );
   });
   if (!matches) {
@@ -356,23 +355,6 @@ function boundsDistance(left: OutputBounds, right: OutputBounds): number {
     Math.max(left.min[1] - right.max[1], right.min[1] - left.max[1], 0),
     Math.max(left.min[2] - right.max[2], right.min[2] - left.max[2], 0)
   );
-}
-
-function pointBoundsDistance(point: number[], bounds: OutputBounds): number {
-  return toBox3(bounds).distanceToPoint(toVector3(point));
-}
-
-function boundsCorners(bounds: OutputBounds): number[][] {
-  return [
-    [bounds.min[0], bounds.min[1], bounds.min[2]],
-    [bounds.min[0], bounds.min[1], bounds.max[2]],
-    [bounds.min[0], bounds.max[1], bounds.min[2]],
-    [bounds.min[0], bounds.max[1], bounds.max[2]],
-    [bounds.max[0], bounds.min[1], bounds.min[2]],
-    [bounds.max[0], bounds.min[1], bounds.max[2]],
-    [bounds.max[0], bounds.max[1], bounds.min[2]],
-    [bounds.max[0], bounds.max[1], bounds.max[2]],
-  ];
 }
 
 function axisIndex(axis: 'x' | 'y' | 'z'): number {

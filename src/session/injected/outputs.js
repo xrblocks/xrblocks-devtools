@@ -350,6 +350,10 @@ function serializeSimulatorPlane(plane, index, three) {
 }
 
 function distanceFromBoundsToMesh(bounds, root, three) {
+  const box = new three.Box3(
+    new three.Vector3().fromArray(bounds.min),
+    new three.Vector3().fromArray(bounds.max)
+  );
   const samples = [bounds.center, ...boundsCorners(bounds)].map((point) =>
     new three.Vector3().fromArray(point)
   );
@@ -362,6 +366,7 @@ function distanceFromBoundsToMesh(bounds, root, three) {
   root.updateWorldMatrix?.(true, true);
   root.updateMatrixWorld?.(true);
   root.traverse?.((object) => {
+    if (minimumDistanceSquared === 0) return;
     const position = object.geometry?.attributes?.position;
     if (!position) return;
     const index = object.geometry.index;
@@ -377,6 +382,10 @@ function distanceFromBoundsToMesh(bounds, root, three) {
         .fromBufferAttribute(position, index?.getX(offset + 2) ?? offset + 2)
         .applyMatrix4(object.matrixWorld);
       triangle.set(first, second, third);
+      if (box.intersectsTriangle(triangle)) {
+        minimumDistanceSquared = 0;
+        break;
+      }
       for (const sample of samples) {
         triangle.closestPointToPoint(sample, closest);
         minimumDistanceSquared = Math.min(
