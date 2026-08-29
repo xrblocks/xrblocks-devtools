@@ -78,7 +78,11 @@ function renderableLocalBounds(object) {
   if (!object?.geometry) return undefined;
   object.computeBoundingBox?.();
   object.geometry.computeBoundingBox?.();
-  return object.boundingBox || object.geometry.boundingBox || undefined;
+  if (object.boundingBox?.isBox3 === true) return object.boundingBox;
+  if (object.geometry.boundingBox?.isBox3 === true) {
+    return object.geometry.boundingBox;
+  }
+  return undefined;
 }
 
 function effectiveVisibility(object) {
