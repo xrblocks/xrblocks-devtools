@@ -15,8 +15,30 @@
   const context = new NativeAudioContext();
   const destination = context.createMediaStreamDestination();
   const activeTracks = new Set();
+  const syntheticStreams = new WeakSet();
+  const streamTracks = new WeakMap();
+  const webAudioConsumers = new Set();
   const speechTracks = new WeakMap();
   let injectionActive = false;
+
+  const nativeCreateMediaStreamSource =
+    NativeAudioContext.prototype.createMediaStreamSource;
+  if (nativeCreateMediaStreamSource) {
+    NativeAudioContext.prototype.createMediaStreamSource = function (stream) {
+      if (!syntheticStreams.has(stream)) {
+        return nativeCreateMediaStreamSource.call(this, stream);
+      }
+
+      const input = this.createGain();
+      Object.defineProperty(input, 'mediaStream', {value: stream});
+      webAudioConsumers.add({
+        context: this,
+        input,
+        track: streamTracks.get(stream),
+      });
+      return input;
+    };
+  }
 
   function createSyntheticTrack() {
     const sourceTrack = destination.stream.getAudioTracks()[0];
@@ -27,6 +49,9 @@
       if (stopped) return;
       stopped = true;
       activeTracks.delete(track);
+      for (const consumer of webAudioConsumers) {
+        if (consumer.track === track) webAudioConsumers.delete(consumer);
+      }
       nativeStop();
     };
     activeTracks.add(track);
@@ -34,10 +59,13 @@
   }
 
   function combineTracks(audioTrack, videoStream) {
-    return new MediaStream([
+    const stream = new MediaStream([
       audioTrack,
       ...(videoStream?.getVideoTracks() || []),
     ]);
+    syntheticStreams.add(stream);
+    streamTracks.set(stream, audioTrack);
+    return stream;
   }
 
   const nativeGetUserMedia = navigator.mediaDevices?.getUserMedia?.bind(
@@ -114,6 +142,58 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  function copyAudioBuffer(buffer, targetContext) {
+    const copy = targetContext.createBuffer(
+      buffer.numberOfChannels,
+      buffer.length,
+      buffer.sampleRate
+    );
+    for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+      copy.getChannelData(channel).set(buffer.getChannelData(channel));
+    }
+    return copy;
+  }
+
+  async function createWebAudioPlayback(consumer, audioBuffer) {
+    if (consumer.context.state === 'closed') {
+      webAudioConsumers.delete(consumer);
+      return undefined;
+    }
+    await consumer.context.resume();
+    if (consumer.context.state !== 'running') {
+      throw new Error('A synthetic microphone Web Audio consumer is suspended.');
+    }
+
+    const source = consumer.context.createBufferSource();
+    source.buffer = copyAudioBuffer(audioBuffer, consumer.context);
+    source.connect(consumer.input);
+    return source;
+  }
+
+  function sourceEnded(source) {
+    return new Promise((resolve) => {
+      source.onended = resolve;
+    });
+  }
+
+  async function waitForPlayback(sources) {
+    const ended = Promise.all(sources.map(sourceEnded));
+    let playbackEnded = false;
+    ended.then(() => {
+      playbackEnded = true;
+    });
+
+    for (const source of sources) {
+      source.start(source.context.currentTime + 0.1);
+    }
+    while (!playbackEnded) {
+      await wait(1000 / 60);
+      const core = window.xb?.core;
+      if (core?.isPaused) core.stepFrame?.();
+    }
+    await ended;
+  }
+
   function getState() {
     return {
       activeConsumers: activeTracks.size,
@@ -168,11 +248,14 @@
       bufferSource.buffer = audioBuffer;
       bufferSource.connect(destination);
       if (monitor) bufferSource.connect(context.destination);
-      const ended = new Promise((resolve) => {
-        bufferSource.onended = resolve;
-      });
-      bufferSource.start(context.currentTime + 0.1);
-      await ended;
+      const webAudioSources = (
+        await Promise.all(
+          [...webAudioConsumers].map((consumer) =>
+            createWebAudioPlayback(consumer, audioBuffer)
+          )
+        )
+      ).filter(Boolean);
+      await waitForPlayback([bufferSource, ...webAudioSources]);
       await wait(500);
       window.xb?.core?.stepFrame?.(0);
 

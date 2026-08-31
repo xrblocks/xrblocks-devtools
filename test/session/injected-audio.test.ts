@@ -27,31 +27,80 @@ class MockMediaStream {
 function makeAudioContext() {
   const destination = {stream: new MockMediaStream([new MockTrack()])};
   const speakerDestination = {kind: 'speaker'};
-  const source = {
-    buffer: undefined,
-    onended: undefined as (() => void) | undefined,
-    connect: vi.fn(),
-    start: vi.fn(function (this: {onended?: () => void}) {
-      this.onended?.();
-    }),
-  };
+  const contexts: MockAudioContext[] = [];
+  const sources: Array<ReturnType<typeof createSource>> = [];
+  const gains: Array<{connect: ReturnType<typeof vi.fn>}> = [];
+  const nativeMediaStreamSources: Array<{
+    mediaStream: MockMediaStream;
+    connect: ReturnType<typeof vi.fn>;
+  }> = [];
+
+  function createSource(context: MockAudioContext) {
+    return {
+      context,
+      buffer: undefined as unknown,
+      onended: undefined as (() => void) | undefined,
+      connect: vi.fn(),
+      start: vi.fn(function (this: {onended?: () => void}) {
+        this.onended?.();
+      }),
+    };
+  }
+
+  class MockAudioContext {
+    currentTime = 1;
+    state = 'running';
+    destination = speakerDestination;
+    constructor() {
+      contexts.push(this);
+    }
+    createMediaStreamDestination = () => destination;
+    createBufferSource = () => {
+      const source = createSource(this);
+      sources.push(source);
+      return source;
+    };
+    createGain = () => {
+      const gain = {connect: vi.fn()};
+      gains.push(gain);
+      return gain;
+    };
+    createMediaStreamSource(stream: MockMediaStream) {
+      const source = {mediaStream: stream, connect: vi.fn()};
+      nativeMediaStreamSources.push(source);
+      return source;
+    }
+    createBuffer = (channels: number, length: number, sampleRate: number) => {
+      const channelData = Array.from(
+        {length: channels},
+        () => new Float32Array(length)
+      );
+      return {
+        length,
+        numberOfChannels: channels,
+        sampleRate,
+        getChannelData: (channel: number) => channelData[channel],
+      };
+    };
+    resume = vi.fn(async () => {
+      this.state = 'running';
+    });
+    decodeAudioData = vi.fn().mockResolvedValue({
+      duration: 0.25,
+      length: 3,
+      sampleRate: 16_000,
+      numberOfChannels: 1,
+      getChannelData: () => new Float32Array([0, 0.5, 0]),
+    });
+  }
+
   return {
-    source,
+    contexts,
+    sources,
+    gains,
+    nativeMediaStreamSources,
     speakerDestination,
-    AudioContext: class MockAudioContext {
-      currentTime = 1;
-      state = 'running';
-      destination = speakerDestination;
-      createMediaStreamDestination = () => destination;
-      createBufferSource = () => source;
-      resume = vi.fn().mockResolvedValue(undefined);
-      decodeAudioData = vi.fn().mockResolvedValue({
-        duration: 0.25,
-        sampleRate: 16_000,
-        numberOfChannels: 1,
-        getChannelData: () => new Float32Array([0, 0.5, 0]),
-      });
-    },
+    AudioContext: MockAudioContext,
   };
 }
 
@@ -102,7 +151,11 @@ async function installAudio(
     navigator,
     nativeGetUserMedia,
     stepFrame,
-    source: audioContext.source,
+    AudioContext: audioContext.AudioContext,
+    contexts: audioContext.contexts,
+    sources: audioContext.sources,
+    gains: audioContext.gains,
+    nativeMediaStreamSources: audioContext.nativeMediaStreamSources,
     speakerDestination: audioContext.speakerDestination,
     Recognition: window.SpeechRecognition as typeof MockRecognition,
   };
@@ -154,6 +207,35 @@ describe('injected synthetic microphone', () => {
     expect(stepFrame).toHaveBeenCalledWith(0);
   });
 
+  it('injects into a Web Audio consumer in its own context', async () => {
+    const {audio, navigator, AudioContext, sources} = await installAudio();
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const consumerContext = new AudioContext();
+    const consumerInput = consumerContext.createMediaStreamSource(stream);
+
+    await audio.inject({
+      source: 'file',
+      base64: Buffer.from('wav').toString('base64'),
+    });
+
+    const consumerSource = sources.find(
+      (source) => source.context === consumerContext
+    );
+    expect(consumerInput.mediaStream).toBe(stream);
+    expect(consumerSource?.connect).toHaveBeenCalledWith(consumerInput);
+    expect(consumerSource?.start).toHaveBeenCalledOnce();
+  });
+
+  it('uses the native media stream source for non-synthetic streams', async () => {
+    const {AudioContext, nativeMediaStreamSources} = await installAudio();
+    const context = new AudioContext();
+    const nativeStream = new MockMediaStream([new MockTrack()]);
+
+    const source = context.createMediaStreamSource(nativeStream);
+
+    expect(source).toBe(nativeMediaStreamSources[0]);
+  });
+
   it('uses the synthetic track for SpeechRecognition.start()', async () => {
     const {audio, Recognition} = await installAudio();
     const recognition = new Recognition();
@@ -165,7 +247,8 @@ describe('injected synthetic microphone', () => {
   });
 
   it('optionally monitors injected audio through speaker output', async () => {
-    const {audio, navigator, source, speakerDestination} = await installAudio();
+    const {audio, navigator, sources, speakerDestination} =
+      await installAudio();
     await navigator.mediaDevices.getUserMedia({audio: true});
 
     await audio.inject({
@@ -174,6 +257,6 @@ describe('injected synthetic microphone', () => {
       base64: Buffer.from('wav').toString('base64'),
     });
 
-    expect(source.connect).toHaveBeenCalledWith(speakerDestination);
+    expect(sources[0].connect).toHaveBeenCalledWith(speakerDestination);
   });
 });
