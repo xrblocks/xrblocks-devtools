@@ -87,6 +87,8 @@ Use wait only when a previous action can reasonably cause a delayed change. Do n
 
 Call exit only when the current observation supports that the requested interaction is complete or when no declared action can make further progress.
 
+If attempted actions are not making progress and the current observation does not support another concrete approach, exit early with a short concrete reason instead of continuing ineffective actions.
+
 When blocked, give a short concrete reason in exit.message. Do not stop after one failed action while another valid approach remains.
 
 Do not assign pass, fail, a score, or confidence to the application. The external verifier decides the result. An exit call is a report to the caller, not verifier evidence.
