@@ -40,6 +40,7 @@ const sessionCommands = [
   ['pointTo', 'pointTo(hand?, target?, options?)'],
   ['reachTo', 'reachTo(hand?, target?, options?)'],
   ['click', 'click(hand?, options?)'],
+  ['rayClick', 'rayClick(hand, target)'],
   ['wait', 'wait(durationMs)'],
   ['stepFrame', 'stepFrame(frames?)'],
   ['injectAudio', 'injectAudio({file} | {text})'],

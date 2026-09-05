@@ -459,6 +459,7 @@ scene/context name, a world position `[x, y, z]` in meters, or `{tag: 'name'}`.
 | `startSelect(hand?)`                | Begin and hold WebXR selection. Default right.                                                                                            |
 | `endSelect(hand?)`                  | Release selection. Default right.                                                                                                         |
 | `click(hand?, options?)`            | Select press and release. Default right and `durationMs: 200`.                                                                            |
+| `rayClick(hand, target)`            | Move the hand near a target, aim its ray with deterministic fallback positions, and click.                                                |
 | `wait(durationMs)`                  | Advance real and simulation time by a positive number of milliseconds.                                                                    |
 | `stepFrame(frames?)`                | Advance positive frame count; default one frame at about 16.67 ms.                                                                        |
 | `injectAudio({file})`               | Inject a RIFF/WAVE file, maximum 25 MB.                                                                                                   |

@@ -544,6 +544,16 @@ export class XRBlocksSession {
     );
   }
 
+  rayClick(hand: PhysicalHand, target: unknown) {
+    return this.requireRuntime().perform(
+      'rayClick',
+      {hand, target},
+      'rayClick',
+      handIndex(hand),
+      target
+    );
+  }
+
   wait(durationMs: number) {
     if (!Number.isFinite(durationMs) || durationMs <= 0) {
       throw new Error('Wait durationMs must be a positive finite number.');

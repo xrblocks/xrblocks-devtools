@@ -395,6 +395,47 @@ window.__xrblocksDevtoolsRuntime = {
     await getEmbodiedControl().click(handIndex, options);
     return {completed: true};
   },
+  async rayClick(handIndex = 1, target) {
+    const resolvedTarget = await resolveInteractionTarget(target);
+    const three = window.THREE ?? (await import('three'));
+    const targetCenter = rayClickTargetCenter(resolvedTarget, three);
+    const camera = getCamera();
+    const cameraPosition = new three.Vector3();
+    camera.getWorldPosition(cameraPosition);
+    const towardCamera = cameraPosition.sub(targetCenter).normalize();
+    if (towardCamera.lengthSq() === 0) towardCamera.set(0, 0, 1);
+
+    const radius = rayClickTargetRadius(resolvedTarget, three);
+    const base = targetCenter
+      .clone()
+      .addScaledVector(towardCamera, radius + 0.1);
+    const right = new three.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+    const up = new three.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+    const offsets = [
+      [0, 0],
+      [0.1, 0],
+      [-0.1, 0],
+      [0, 0.1],
+      [0, -0.1],
+    ];
+    const embodiedControl = getEmbodiedControl();
+
+    for (const [rightOffset, upOffset] of offsets) {
+      const handPosition = base
+        .clone()
+        .addScaledVector(right, rightOffset)
+        .addScaledVector(up, upOffset);
+      assertReachTarget(handIndex, handPosition.toArray());
+      await embodiedControl.reachTo(handIndex, handPosition);
+      await embodiedControl.pointTo(handIndex, resolvedTarget);
+      if (rayPointsToTarget(handIndex, resolvedTarget)) {
+        await embodiedControl.click(handIndex);
+        return {completed: true};
+      }
+    }
+
+    throw new Error('Unable to aim the hand ray at the requested target.');
+  },
   async wait(durationMs) {
     if (!Number.isFinite(durationMs) || durationMs <= 0) {
       throw new Error('Wait durationMs must be a positive finite number.');
@@ -434,3 +475,43 @@ window.__xrblocksDevtoolsRuntime = {
     return {completed: true, frames};
   },
 };
+
+function rayClickTargetCenter(target, three) {
+  if (Array.isArray(target)) return new three.Vector3().fromArray(target);
+  target.updateWorldMatrix?.(true, true);
+  const bounds = new three.Box3().setFromObject(target, true);
+  if (!bounds.isEmpty()) return bounds.getCenter(new three.Vector3());
+  return target.getWorldPosition(new three.Vector3());
+}
+
+function rayClickTargetRadius(target, three) {
+  if (Array.isArray(target)) return 0;
+  const bounds = new three.Box3().setFromObject(target, true);
+  if (bounds.isEmpty()) return 0;
+  const sphere = bounds.getBoundingSphere(new three.Sphere());
+  return Number.isFinite(sphere.radius) ? sphere.radius : 0;
+}
+
+function rayPointsToTarget(handIndex, target) {
+  if (Array.isArray(target)) return true;
+  const reticle = getCore().input?.controllers?.[handIndex]?.reticle;
+  if (!reticle) return true;
+  const hit = reticle.targetObject ?? reticle.intersection?.object;
+  const hitPresentation = window.xb?.getUIPresentationObject?.(hit);
+  return (
+    objectsAreRelated(hit, target) ||
+    objectsAreRelated(hitPresentation, target)
+  );
+}
+
+function objectsAreRelated(left, right) {
+  if (!left || !right) return false;
+  return objectHasAncestor(left, right) || objectHasAncestor(right, left);
+}
+
+function objectHasAncestor(object, ancestor) {
+  for (let current = object; current; current = current.parent) {
+    if (current === ancestor) return true;
+  }
+  return false;
+}
