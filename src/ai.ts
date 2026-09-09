@@ -3,7 +3,10 @@ import type {LanguageModel} from 'ai';
 export const DEFAULT_AI_MODEL = 'gemini-3.8-flash';
 export const DEFAULT_AI_MAX_RETRIES = 6;
 
-const DEFAULT_AI_TIMEOUT_MS = 40_000;
+// The AI SDK applies this timeout to the complete generation call, including
+// all retry attempts and exponential-backoff delays. Keep enough headroom for
+// DEFAULT_AI_MAX_RETRIES to run when Google returns transient errors.
+const DEFAULT_AI_TIMEOUT_MS = 300_000;
 const AI_PROVIDER_ENV = 'XRBLOCKS_DEV_TOOLS_AI_PROVIDER';
 const GOOGLE_AI_API_KEY_ENV = 'GOOGLE_GENERATIVE_AI_API_KEY';
 const GEMINI_API_KEY_ENV = 'GEMINI_API_KEY';

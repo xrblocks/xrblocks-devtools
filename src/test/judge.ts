@@ -55,7 +55,10 @@ export interface JudgeOptions {
   model?: string;
   /** Retry limit for transient model errors. Defaults to 6. */
   maxRetries?: number;
-  /** Maximum duration of each Google AI request. Defaults to 40 seconds. */
+  /**
+   * Maximum duration of the judge call, including retries.
+   * Defaults to 5 minutes.
+   */
   timeoutMs?: number;
   signal?: AbortSignal;
 }
@@ -109,9 +112,15 @@ export async function judgeWithSystemInstruction<
     const message =
       error instanceof AiUnavailableError
         ? error.message
-        : 'Judge request failed.';
+        : `Judge request failed: ${errorMessage(error)}`;
     throw new VerifierError(message, {cause: error});
   }
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (typeof error === 'string' && error.trim()) return error;
+  return 'unknown error';
 }
 
 /** @internal */
