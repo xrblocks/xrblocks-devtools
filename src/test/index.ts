@@ -5,12 +5,12 @@ export {
   type JudgeEvidence,
   type JudgeOptions,
   type JudgeVerdict,
-} from './judge.js';
+} from '../agent/judge.js';
 export {
   judgeTrajectory,
   type JudgeTrajectoryOptions,
   type TrajectoryVerdict,
-} from './judge-trajectory.js';
+} from '../agent/judge-trajectory.js';
 export {
   afterAll,
   afterEach,

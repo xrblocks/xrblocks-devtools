@@ -1,16 +1,16 @@
 import {jsonSchema, tool, type ModelMessage, type ToolSet} from 'ai';
-import type {JsonObject} from './types.js';
+import type {JsonObject} from '../types.js';
 import {aiImagePart} from './ai.js';
-import {DEFAULT_SESSION_AGENT_PROMPT} from './agent-prompts.js';
+import {DEFAULT_SESSION_AGENT_PROMPT} from './prompts.js';
 import {
   agentActionDeclarations,
   agentActionPrompt,
   type AgentToolProfile,
-} from './session/actions.js';
+} from './actions.js';
 import {
   agentObservationPrompt,
   type AgentObservationKind,
-} from './agent-observations.js';
+} from './observations.js';
 
 export type AgentToolCall = {name: string; args: JsonObject};
 export type AgentActionOutcome =

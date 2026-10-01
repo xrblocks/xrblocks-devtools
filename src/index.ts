@@ -41,9 +41,9 @@ export type {
   ActResult,
   ActStatus,
   ActTrajectory,
-} from './agent.js';
-export type {ActArtifacts} from './agent-artifacts.js';
-export type {AgentToolProfile} from './session/actions.js';
+} from './agent/index.js';
+export type {ActArtifacts} from './agent/artifacts.js';
+export type {AgentToolProfile} from './agent/actions.js';
 export {visualize} from './visualize/index.js';
 export type {
   ModelVisualizeRequest,

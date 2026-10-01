@@ -1,5 +1,9 @@
-import {runSessionAct, type ActOptions, type ActResult} from '../agent.js';
-import {writeActArtifacts, type ActArtifacts} from '../agent-artifacts.js';
+import {
+  runSessionAct,
+  type ActOptions,
+  type ActResult,
+} from '../agent/index.js';
+import {writeActArtifacts, type ActArtifacts} from '../agent/artifacts.js';
 import type {RecordingArtifact, SessionRecordingOptions} from './recording.js';
 import {
   openSessionRuntime,

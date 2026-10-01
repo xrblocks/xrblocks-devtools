@@ -3,13 +3,13 @@ import {realpathSync} from 'node:fs';
 import path from 'node:path';
 import {stdin} from 'node:process';
 import {fileURLToPath} from 'node:url';
-import {createAiModel} from './ai.js';
+import {createAiModel} from './agent/ai.js';
 import {XRBlocksSession} from './session/index.js';
 import {commandHelp, parseCommand} from './command-config.js';
 import {loadDotEnv} from './env.js';
 import {runInteractive, interactiveHelpText} from './interactive.js';
 import {installInterruptHandlers} from './signals.js';
-import {judgeTrajectory} from './test/judge-trajectory.js';
+import {judgeTrajectory} from './agent/judge-trajectory.js';
 import {runTests} from './test/run-tests.js';
 import {visualize} from './visualize/index.js';
 

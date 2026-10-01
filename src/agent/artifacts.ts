@@ -1,7 +1,7 @@
 import {mkdir, writeFile} from 'node:fs/promises';
 import path from 'node:path';
-import type {ActEvent, ActResult} from './agent.js';
-import type {JsonObject} from './types.js';
+import type {ActEvent, ActResult} from './index.js';
+import type {JsonObject} from '../types.js';
 
 export type ActArtifacts = {
   trajectoryPath: string;

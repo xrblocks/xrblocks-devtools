@@ -7,7 +7,7 @@ import {
   type TestModule,
 } from 'vitest/node';
 import type {XRBlocksTestMeta, XRBlocksTestContext} from './internal-types.js';
-import {JUDGE_MODEL_ENV} from './judge.js';
+import {JUDGE_MODEL_ENV} from '../agent/judge.js';
 import {
   writeResult,
   type EvaluationError,

@@ -1,17 +1,17 @@
-import type {XRBlocksSession} from './session.js';
+import type {XRBlocksSession} from '../session/session.js';
 import type {JsonObject} from '../types.js';
 import {
   NAMED_HAND_POSES,
   type NamedHandPose,
   type PhysicalHand,
-} from './types.js';
+} from '../session/types.js';
 import {
   ANGULAR_SPEED,
   boundedSpeed,
   HAND_MOVE_SPEED,
   type SpeedConfig,
   VIEWER_MOVE_SPEED,
-} from './motion.js';
+} from '../session/motion.js';
 
 type AgentActionDefinition = {
   name: string;

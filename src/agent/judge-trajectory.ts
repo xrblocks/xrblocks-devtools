@@ -1,10 +1,10 @@
-import type {ActEvent, ActTrajectory} from '../agent.js';
+import type {ActEvent, ActTrajectory} from './index.js';
 import {
   buildTrajectoryJudgePrompt,
   TRAJECTORY_JUDGE_SYSTEM_INSTRUCTION,
-} from '../agent-prompts.js';
-import {agentActionDeclarations} from '../session/actions.js';
-import {VerifierError} from './failure.js';
+} from './prompts.js';
+import {agentActionDeclarations} from './actions.js';
+import {VerifierError} from '../test/failure.js';
 import {
   isJudgeVerdict,
   judgeWithSystemInstruction,

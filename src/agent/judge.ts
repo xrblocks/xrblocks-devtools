@@ -12,10 +12,10 @@ import {
   createAiModel,
   DEFAULT_AI_MAX_RETRIES,
   DEFAULT_AI_MODEL,
-} from '../ai.js';
-import {JUDGE_SYSTEM_INSTRUCTION} from '../agent-prompts.js';
+} from './ai.js';
+import {JUDGE_SYSTEM_INSTRUCTION} from './prompts.js';
 import type {JsonObject} from '../types.js';
-import {VerifierError} from './failure.js';
+import {VerifierError} from '../test/failure.js';
 
 /** Environment override set by the test runner's --judge-model option. */
 export const JUDGE_MODEL_ENV = 'XRBLOCKS_JUDGE_MODEL';
