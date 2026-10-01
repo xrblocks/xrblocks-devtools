@@ -1,5 +1,5 @@
-import type {AgentObservationKind} from './agent-observations.js';
-import {parseAgentObservations} from './agent-observations.js';
+import type {AgentObservationKind} from './agent/observations.js';
+import {parseAgentObservations} from './agent/observations.js';
 import type {XRBlocksSessionConfig} from './session/index.js';
 import type {VisualizeKind, ViewPreset} from './visualize/types.js';
 

@@ -1,6 +1,6 @@
 import {generateText, type LanguageModel, type ModelMessage} from 'ai';
-import type {XRBlocksSession} from './session/index.js';
-import type {JsonObject} from './types.js';
+import type {XRBlocksSession} from '../session/index.js';
+import type {JsonObject} from '../types.js';
 import {
   aiTimeoutMs,
   createAiModel,
@@ -11,14 +11,14 @@ import {
   AgentActionError,
   executeAgentAction,
   type AgentToolProfile,
-} from './session/actions.js';
+} from './actions.js';
 import {
   captureAgentObservation,
   normalizeAgentObservations,
   type AgentObservationKind,
   type AgentObservationSelection,
-} from './agent-observations.js';
-import type {ActArtifacts} from './agent-artifacts.js';
+} from './observations.js';
+import type {ActArtifacts} from './artifacts.js';
 import {
   agentToolResultMessage,
   buildAgentSystemInstruction,
@@ -26,7 +26,7 @@ import {
   initialAgentMessage,
   parseAgentToolCall,
   type AgentActionOutcome,
-} from './agent-model.js';
+} from './model.js';
 
 const DEFAULT_OBSERVATION_DELAY_MS = 500;
 

@@ -1,5 +1,5 @@
-import type {XRBlocksSession} from './session/index.js';
-import type {JsonObject} from './types.js';
+import type {XRBlocksSession} from '../session/index.js';
+import type {JsonObject} from '../types.js';
 
 export const AGENT_OBSERVATION_KINDS = [
   'image',
