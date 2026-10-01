@@ -14,7 +14,7 @@ import {
 } from 'vitest';
 import path from 'node:path';
 import type {SimulatorEnvironment} from 'xrblocks';
-import {AiUnavailableError} from '../ai.js';
+import {AiUnavailableError} from '../agent/ai.js';
 import {
   DEFAULT_SESSION_TIMEOUT_MS,
   XRBlocksSession,

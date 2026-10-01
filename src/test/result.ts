@@ -6,7 +6,7 @@ import type {
   PhysicalHand,
   RecordingArtifact,
 } from '../session/index.js';
-import type {ActStatus} from '../agent.js';
+import type {ActStatus} from '../agent/index.js';
 import type {SceneVariant} from './authoring.js';
 
 export type TestStatus = 'passed' | 'failed' | 'blocked';
