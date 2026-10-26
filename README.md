@@ -424,6 +424,22 @@ Targets are a live Scene Context ID such as `ctx_1`, an exact unique
 scene/context name, a world position `[x, y, z]` in meters, or `{tag: 'name'}`.
 `left` and `right` select physical hands.
 
+`navigateTo()` also accepts named locations from the active simulator
+environment, such as `navigateTo('occlusion-target')`. List them with
+`getDevtoolsContext({locations: true})`. Navigation resolves environment location
+names before scene/context names.
+
+For a destination that has no named environment location, scene object, or
+context entry, pass its world coordinates directly: `navigateTo([0, 1.6, -2])`.
+
+
+To inspect a session object:
+
+```js
+const object = await session.objects.inspect('Start Button');
+await session.navigateTo([0, 1.6, -2]);
+```
+
 ### Observe and save evidence
 
 | Function                          | Result or effect                                                                                              |
@@ -552,6 +568,23 @@ With `?debug=1`, the SDK automatically creates `window.xb` and
 `window.xbReady`. Do not assign, replace, or delete these globals in application
 code. `window.xb` exposes the full SDK namespace; `window.xbReady` is a Promise
 that resolves after SDK initialization or rejects if initialization fails.
+
+A custom vendor build that bypasses the SDK's debug-registering entry point
+must provide this bridge in its application entry (`main.js`). For that build,
+use this initialization instead of a separate `xb.init()` call:
+
+```js
+import * as xb from 'xrblocks';
+
+const options = new xb.Options();
+if (new URLSearchParams(location.search).get('debug') === '1') {
+  window.xb = xb;
+  window.xbReady = xb.init(options);
+  await window.xbReady;
+} else {
+  await xb.init(options);
+}
+```
 
 ```js
 if (!window.xb || !window.xbReady) {
