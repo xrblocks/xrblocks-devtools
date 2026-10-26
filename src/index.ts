@@ -46,6 +46,8 @@ export type {ActArtifacts} from './agent/artifacts.js';
 export type {AgentToolProfile} from './agent/actions.js';
 export {visualize} from './visualize/index.js';
 export type {
+  HandPreview,
+  HandVisualizeRequest,
   ModelVisualizeRequest,
   PreviewInput,
   UIVisualizeRequest,

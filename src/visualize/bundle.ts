@@ -6,6 +6,7 @@ import type {VisualizeKind} from './types.js';
 const browserEntries = {
   ui: fileURLToPath(new URL('./browser/ui.js', import.meta.url)),
   model: fileURLToPath(new URL('./browser/model.js', import.meta.url)),
+  hand: fileURLToPath(new URL('./browser/model.js', import.meta.url)),
 } satisfies Record<VisualizeKind, string>;
 
 // XR Blocks loads these packages only when their optional features are used.

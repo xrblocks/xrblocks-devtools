@@ -127,16 +127,20 @@ definitions as the parser.
 
 ```text
 xrblocks-devtools visualize <ui|model> <module|-> -o <out.png> [options]
+xrblocks-devtools visualize hand --pose <name> -o <out.png> [options]
 ```
 
 | Flag                    | Value and behavior                                                                                      |
 | ----------------------- | ------------------------------------------------------------------------------------------------------- |
 | `-o`, `--out <path>`    | Required PNG output path. Parent directories are created.                                               |
-| `--size <WxH>`          | Output pixels. Defaults: UI `1024x768`; model `1024x1024`.                                              |
+| `--size <WxH>`          | Output pixels. Defaults: UI `1024x768`; model/hand `1024x1024`.                                         |
 | `--bg <color>`          | CSS background color or `transparent`. Default `#f4f5f7`.                                               |
-| `--views <preset>`      | Model only: `inspection-4` (default), `turntable-4`, or `front`.                                        |
+| `--views <preset>`      | Model/hand: `inspection-4` (default), `turntable-4`, or `front`.                                        |
 | `--assets-dir <dir>`    | Files available below `/assets/`. Defaults to the module directory, or the current directory for stdin. |
-| `--xrblocks-root <dir>` | UI only: XR Blocks package or checkout used for the preview.                                            |
+| `--xrblocks-root <dir>` | UI/hand: XR Blocks package or checkout used for the preview.                                            |
+| `--pose <name>`         | Hand base pose; default `relaxed`.                                                                      |
+| `--joint <name=x,y,z>`  | Hand joint override in degrees; repeatable.                                                             |
+| `--hand <side>`         | Render `left`, `right`, or `both` (default).                                                            |
 | `-h`, `--help`          | Show command help.                                                                                      |
 
 Use `-` as the module to read TypeScript source from stdin. A UI module receives

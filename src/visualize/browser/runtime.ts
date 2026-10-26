@@ -1,4 +1,7 @@
+import type {HandPreview} from '../types.js';
+
 export type PreviewConfig = {
+  hand?: HandPreview;
   width: number;
   height: number;
   background: string;

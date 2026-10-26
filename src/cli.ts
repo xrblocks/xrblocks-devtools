@@ -27,22 +27,33 @@ export async function main(argv = process.argv.slice(2), signal?: AbortSignal) {
       return command.exitCode;
     }
     case 'visualize': {
-      const input =
-        command.target === '-'
-          ? {source: await readStdin()}
-          : {path: command.target};
-      const result = await visualize({
-        kind: command.visualizeKind,
-        input,
+      const common = {
         out: command.out,
         size: command.size,
         background: command.background,
-        assetsDir: command.assetsDir,
         signal,
-        ...(command.visualizeKind === 'ui'
-          ? {xrblocksRoot: command.xrblocksRoot}
-          : {views: command.views}),
-      });
+      };
+      const result =
+        command.visualizeKind === 'hand'
+          ? await visualize({
+              ...common,
+              kind: 'hand',
+              ...command.handPreview,
+              views: command.views,
+              xrblocksRoot: command.xrblocksRoot,
+            })
+          : await visualize({
+              ...common,
+              kind: command.visualizeKind,
+              input:
+                command.target === '-'
+                  ? {source: await readStdin()}
+                  : {path: command.target!},
+              assetsDir: command.assetsDir,
+              ...(command.visualizeKind === 'ui'
+                ? {xrblocksRoot: command.xrblocksRoot}
+                : {views: command.views}),
+            });
       for (const warning of result.warnings)
         console.error(`Warning: ${warning}`);
       console.log(JSON.stringify(result, null, 2));

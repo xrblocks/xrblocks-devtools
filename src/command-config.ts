@@ -1,3 +1,5 @@
+import {parseHandJoints, validateHandPreview} from './visualize/hand.js';
+import type {HandPreview} from './visualize/types.js';
 import type {AgentObservationKind} from './agent/observations.js';
 import {parseAgentObservations} from './agent/observations.js';
 import type {XRBlocksSessionConfig} from './session/index.js';
@@ -7,6 +9,7 @@ type FlagKind = 'boolean' | 'string' | 'number';
 type FlagDefinition = {
   name: string;
   short?: string;
+  repeatable?: boolean;
   kind: FlagKind;
   value?: string;
   description: string;
@@ -21,14 +24,15 @@ type CommandDefinition = {
 
 type CommandName = 'visualize' | 'interact' | 'agent' | 'test';
 
-type FlagValues = Record<string, string | number | boolean>;
+type FlagValues = Record<string, string | number | boolean | string[]>;
 
 export type ParsedCommand =
   | {kind: 'help'; command?: CommandName; exitCode: number}
   | {
       kind: 'visualize';
       visualizeKind: VisualizeKind;
-      target: string;
+      target?: string;
+      handPreview?: HandPreview;
       out: string;
       size?: string;
       background?: string;
@@ -116,8 +120,9 @@ const recordingFlags = [
 const definitions: Record<CommandName, CommandDefinition> = {
   visualize: {
     name: 'visualize',
-    usage: 'visualize <ui|model> <module|-> -o <out.png> [options]',
-    summary: 'Render a Preview Module to an image.',
+    usage:
+      'visualize <ui|model> <module|-> -o <out.png> [options]\n       xrblocks-devtools visualize hand -o <out.png> [options]',
+    summary: 'Render a UI, model, or posed hand to an image.',
     flags: [
       flag('out', 'string', 'Write the image to this path', 'path', 'o'),
       flag('size', 'string', 'Set output size as WxH', 'WxH'),
@@ -125,14 +130,30 @@ const definitions: Record<CommandName, CommandDefinition> = {
       flag(
         'views',
         'string',
-        'Model only: use inspection-4, turntable-4, or front',
+        'Model/hand: use inspection-4, turntable-4, or front',
         'preset'
       ),
+      flag('pose', 'string', 'Hand: base pose (default relaxed)', 'name'),
+      flag(
+        'hand',
+        'string',
+        'Hand: left, right, or both (default both)',
+        'side'
+      ),
+      {
+        ...flag(
+          'joint',
+          'string',
+          'Hand: joint rotation in degrees; repeatable',
+          'name=x,y,z'
+        ),
+        repeatable: true,
+      },
       flag('assets-dir', 'string', 'Resolve local preview assets here', 'dir'),
       flag(
         'xrblocks-root',
         'string',
-        'UI only: use an XR Blocks checkout/package root',
+        'UI/hand: use an XR Blocks checkout/package root',
         'dir'
       ),
     ],
@@ -215,26 +236,55 @@ export function parseCommand(
 
   if (name === 'visualize') {
     const [visualizeKind, target, ...extra] = parsed.positionals;
-    if (visualizeKind !== 'ui' && visualizeKind !== 'model') {
-      throw new Error('Visualize requires kind "ui" or "model".');
+    if (
+      visualizeKind !== 'ui' &&
+      visualizeKind !== 'model' &&
+      visualizeKind !== 'hand'
+    ) {
+      throw new Error('Visualize requires kind "ui", "model", or "hand".');
     }
-    if (!target) throw new Error('Visualize requires a module path or "-".');
+    if (visualizeKind === 'hand' && target)
+      throw new Error(
+        'Hand previews use --pose and --joint without a module path.'
+      );
+    if (visualizeKind !== 'hand' && !target)
+      throw new Error('Visualize requires a module path or "-".');
     if (extra.length > 0) {
       throw new Error(`Unexpected argument: ${extra[0]}`);
     }
     const out = stringValue(parsed.flags, 'out');
     if (!out) throw new Error('Visualize requires -o/--out.');
     if (visualizeKind === 'ui' && parsed.flags.views !== undefined) {
-      throw new Error('--views is only available for model previews.');
+      throw new Error('--views is only available for model and hand previews.');
     }
     if (
       visualizeKind === 'model' &&
       parsed.flags['xrblocks-root'] !== undefined
     ) {
-      throw new Error('--xrblocks-root is only available for UI previews.');
+      throw new Error(
+        '--xrblocks-root is only available for UI and hand previews.'
+      );
+    }
+    let handPreview: HandPreview | undefined;
+    if (visualizeKind === 'hand') {
+      if (parsed.flags['assets-dir'] !== undefined)
+        throw new Error('--assets-dir is not available for hand previews.');
+      handPreview = {
+        pose: stringValue(parsed.flags, 'pose') as HandPreview['pose'],
+        hand: stringValue(parsed.flags, 'hand') as HandPreview['hand'],
+        rotations: parseHandJoints(
+          (parsed.flags.joint as string[] | undefined) ?? []
+        ),
+      };
+      validateHandPreview(handPreview);
+    } else if (
+      ['pose', 'hand', 'joint'].some((key) => parsed.flags[key] !== undefined)
+    ) {
+      throw new Error('--pose, --hand, and --joint require visualize hand.');
     }
     return {
       kind: 'visualize',
+      handPreview,
       visualizeKind,
       target,
       out,
@@ -351,7 +401,10 @@ function parseArguments(definition: CommandDefinition, args: string[]) {
     if (!flagDefinition) {
       throw new Error(`Unknown ${definition.name} option: ${arg}`);
     }
-    if (flags[flagDefinition.name] !== undefined) {
+    if (
+      !flagDefinition.repeatable &&
+      flags[flagDefinition.name] !== undefined
+    ) {
       throw new Error(`Option may only be provided once: ${arg}`);
     }
     if (flagDefinition.kind === 'boolean') {
@@ -366,6 +419,10 @@ function parseArguments(definition: CommandDefinition, args: string[]) {
         throw new Error(`--${flagDefinition.name} must be a number.`);
       }
       flags[flagDefinition.name] = number;
+    } else if (flagDefinition.repeatable) {
+      const values = (flags[flagDefinition.name] ?? []) as string[];
+      values.push(value);
+      flags[flagDefinition.name] = values;
     } else {
       flags[flagDefinition.name] = value;
     }

@@ -5,6 +5,7 @@ import {chromium, type Browser, type Page} from 'playwright';
 import {bundlePreviewEntry} from './bundle.js';
 import {previewHtml} from './html.js';
 import {normalizePreviewInput} from './input.js';
+import {prepareHandPreview, validateHandPreview} from './hand.js';
 import {resolvePreviewRuntime} from './runtime.js';
 import type {VisualizeRequest, VisualizeResult} from './types.js';
 import {runCleanupStep, throwCleanupErrors} from '../cleanup.js';
@@ -18,7 +19,11 @@ export async function visualize(
   options.signal?.throwIfAborted();
   const size = parseSize(options.size ?? defaultSize(options.kind));
   const background = options.background ?? '#f4f5f7';
-  const input = await normalizePreviewInput(options.input, options.assetsDir);
+  if (options.kind === 'hand') validateHandPreview(options);
+  const input =
+    options.kind === 'hand'
+      ? await prepareHandPreview(options.signal)
+      : await normalizePreviewInput(options.input, options.assetsDir);
   const tempDir = await mkdtemp(
     path.join(os.tmpdir(), 'xrblocks-visualize-')
   ).catch(async (error) => {
@@ -54,7 +59,7 @@ export async function visualize(
   options.signal?.addEventListener('abort', onAbort, {once: true});
   try {
     const runtime = await resolvePreviewRuntime(
-      options.kind === 'ui' ? options.xrblocksRoot : undefined
+      options.kind !== 'model' ? options.xrblocksRoot : undefined
     );
     await mkdir(path.join(tempDir, 'runtime'), {recursive: true});
     await symlinkDir(runtime.threeDir, path.join(tempDir, 'runtime', 'three'));
@@ -73,9 +78,15 @@ export async function visualize(
         height: size.height,
         background,
         views:
-          options.kind === 'model'
-            ? (options.views ?? 'inspection-4')
-            : 'front',
+          options.kind === 'ui' ? 'front' : (options.views ?? 'inspection-4'),
+        hand:
+          options.kind === 'hand'
+            ? {
+                pose: options.pose,
+                rotations: options.rotations,
+                hand: options.hand,
+              }
+            : undefined,
       }),
       'utf8'
     );

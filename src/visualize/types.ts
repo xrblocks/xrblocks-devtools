@@ -1,10 +1,15 @@
-export type VisualizeKind = 'ui' | 'model';
+import type {
+  HandPoseRotations,
+  NamedHandPose,
+  PhysicalHand,
+} from '../session/types.js';
+
+export type VisualizeKind = 'ui' | 'model' | 'hand';
 export type ViewPreset = 'inspection-4' | 'turntable-4' | 'front';
 
 export type PreviewInput = {path: string} | {source: string};
 
 type VisualizeRequestBase = {
-  input: PreviewInput;
   out: string;
   size?: string;
   background?: string;
@@ -14,15 +19,31 @@ type VisualizeRequestBase = {
 
 export type UIVisualizeRequest = VisualizeRequestBase & {
   kind: 'ui';
+  input: PreviewInput;
   xrblocksRoot?: string;
 };
 
 export type ModelVisualizeRequest = VisualizeRequestBase & {
   kind: 'model';
+  input: PreviewInput;
   views?: ViewPreset;
 };
 
-export type VisualizeRequest = UIVisualizeRequest | ModelVisualizeRequest;
+export type HandPreview = {
+  pose?: NamedHandPose;
+  rotations?: HandPoseRotations;
+  hand?: PhysicalHand | 'both';
+};
+
+export type HandVisualizeRequest = VisualizeRequestBase &
+  HandPreview & {
+    kind: 'hand';
+    views?: ViewPreset;
+    xrblocksRoot?: string;
+  };
+
+export type VisualizeRequest =
+  UIVisualizeRequest | ModelVisualizeRequest | HandVisualizeRequest;
 
 export type VisualizeResult = {
   out: string;

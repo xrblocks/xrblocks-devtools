@@ -1,11 +1,6 @@
-import type {ViewPreset} from './types.js';
+import type {PreviewConfig} from './browser/runtime.js';
 
-export function previewHtml(options: {
-  width: number;
-  height: number;
-  background: string;
-  views: ViewPreset;
-}) {
+export function previewHtml(options: PreviewConfig) {
   const bodyBackground =
     options.background === 'transparent' ? 'transparent' : options.background;
   return `<!doctype html>
