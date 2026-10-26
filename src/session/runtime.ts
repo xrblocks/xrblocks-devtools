@@ -348,8 +348,11 @@ class SessionRuntime implements SessionRuntimePort {
     return this.requirePage().screenshot({type: 'png'});
   }
 
-  private evaluateHarness<T = unknown>(method: string, ...args: unknown[]) {
-    return this.requirePage().evaluate(
+  private async evaluateHarness<T = unknown>(
+    method: string,
+    ...args: unknown[]
+  ) {
+    const result = this.requirePage().evaluate(
       ({methodName, methodArgs}) => {
         const harness = globalThis.window.__xrblocksDevtoolsRuntime;
         const fn = harness?.[methodName];
@@ -359,6 +362,30 @@ class SessionRuntime implements SessionRuntimePort {
       },
       {methodName: method, methodArgs: args}
     ) as Promise<T>;
+    const observation = method === 'observe' ? args[0] : method;
+    const options = method === 'observe' ? args[1] : args[0];
+    const capturesScreenshot =
+      observation === 'getScreenshot' ||
+      (observation === 'getCamera' &&
+        options !== null &&
+        typeof options === 'object' &&
+        'screenshot' in options &&
+        options.screenshot === true);
+    if (!capturesScreenshot) return result;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        result,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error('Screenshot timed out after 10 seconds.')),
+            10_000
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private requirePage() {
