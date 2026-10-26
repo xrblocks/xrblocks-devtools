@@ -400,7 +400,8 @@ so checkpoint recordings include a frame after each actor action. Session tests
 do not write separate actor trajectory or observation-image artifacts.
 
 Session tests can set `viewport: {width, height}` for the browser. The browser
-viewport defaults to `1280 × 960`.
+viewport defaults to `1280 × 960`, or `640 × 480` with the
+`container-software` browser profile.
 
 Use `scenes` to run a session test against XR Blocks SDK environments or custom
 simulator manifests. SDK environments use their display names. Manifest paths
@@ -534,9 +535,34 @@ also set `xrblocksRoot` and `entry`. Shared options are `headless`, `timeoutMs`,
 `simulatorNavMesh`,
 `embodiedControlImport`, `recording`, `recordAgent`, and `signal`.
 
-URL sessions bypass workspace injection. Their page must expose XR Blocks debug
-state through `?xrAutomation=1&debug=1` and resolve the embodied-control addon.
-Set `embodiedControlImport` to a browser-loadable URL when needed.
+URL sessions bypass workspace injection. DevTools adds
+`?xrAutomation=1&debug=1` to the page URL automatically. The page must resolve the embodied-control addon; set `embodiedControlImport` to a browser-loadable URL when needed.
+
+### SDK globals and readiness
+
+Application code imports and initializes XR Blocks normally:
+
+```js
+import * as xb from 'xrblocks';
+
+await xb.init(new xb.Options());
+```
+
+With `?debug=1`, the SDK automatically creates `window.xb` and
+`window.xbReady`. Do not assign, replace, or delete these globals in application
+code. `window.xb` exposes the full SDK namespace; `window.xbReady` is a Promise
+that resolves after SDK initialization or rejects if initialization fails.
+
+```js
+if (!window.xb || !window.xbReady) {
+  throw new Error('Load XRBlocks with ?debug=1 first.');
+}
+
+await window.xbReady;
+const core = window.xb.core;
+```
+
+### Session recording
 
 Session recording has two modes:
 

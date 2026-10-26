@@ -29,8 +29,9 @@ const box = await inspect({tag: 'draggable-box'});
 box.world.position;
 ```
 
-Use `.exit` or Ctrl-D. This closes the browser and local server, finalizes video,
-and removes temporary workspaces. SIGINT and SIGTERM request the same cleanup.
+When finished developing or testing, enter `.exit` or Ctrl-D before This closes the REPL and browser inspection session, stops the
+browser's frame loop, closes the local server, finalizes video, and removes
+temporary workspaces. SIGINT and SIGTERM request the same cleanup.
 
 ## Observe, act, verify
 

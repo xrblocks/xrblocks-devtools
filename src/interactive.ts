@@ -72,13 +72,18 @@ export async function runInteractive(config: XRBlocksSessionConfig) {
   config.signal?.addEventListener('abort', onAbort, {once: true});
 
   try {
-    if (config.signal?.aborted) server.close();
-    await new Promise<void>((resolve) => server.once('exit', resolve));
+    await new Promise<void>((resolve) => {
+      server.once('exit', resolve);
+      if (config.signal?.aborted) server.close();
+    });
   } finally {
     config.signal?.removeEventListener('abort', onAbort);
     server.close();
-    await waitForCommands();
-    await session.close();
+    try {
+      await session.close();
+    } finally {
+      await waitForCommands();
+    }
   }
 }
 

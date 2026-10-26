@@ -142,7 +142,11 @@ class SessionRuntime implements SessionRuntimePort {
       args: getChromiumLaunchArgs(),
     });
     signal?.throwIfAborted();
-    const viewport = this.options.viewport ?? {width: 1280, height: 960};
+    const viewport =
+      this.options.viewport ??
+      (process.env.XRBLOCKS_DEVTOOLS_BROWSER_PROFILE === 'container-software'
+        ? {width: 640, height: 480}
+        : {width: 1280, height: 960});
     const contextOptions: Parameters<Browser['newContext']>[0] = {viewport};
     if (this.recorder?.browserVideo) {
       contextOptions.recordVideo = {
@@ -162,9 +166,7 @@ class SessionRuntime implements SessionRuntimePort {
     await this.page.addInitScript({content: await injectedAudioSource()});
     await this.page.goto(targetUrl, {waitUntil: 'domcontentloaded'});
     signal?.throwIfAborted();
-    await this.page.waitForFunction(() =>
-      Boolean(globalThis.window?.xb && globalThis.window?.xbReady)
-    );
+    await this.waitForDebugReady();
     await this.page.evaluate(await injectedHarnessSource());
     await this.evaluateHarness('init', {
       embodiedControlImport:
@@ -180,6 +182,37 @@ class SessionRuntime implements SessionRuntimePort {
     signal?.throwIfAborted();
     this.recorder?.sceneReady();
     this.info = {url: targetUrl};
+  }
+
+  private async waitForDebugReady() {
+    const page = this.requirePage();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const ready = async () => {
+      await page.waitForFunction(
+        () => Boolean(window.xb && window.xbReady),
+        undefined,
+        {timeout: 0}
+      );
+      await page.evaluate(() => window.xbReady);
+    };
+    try {
+      await Promise.race([
+        ready(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  'XR Blocks readiness timed out after 10 seconds. The SDK must expose window.xb and resolve window.xbReady with debug=1. Check SDK loading and xb.init() errors; do not create or replace these globals in application code.'
+                )
+              ),
+            10_000
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   invoke<T = unknown>(method: string, ...args: unknown[]) {
@@ -274,7 +307,10 @@ class SessionRuntime implements SessionRuntimePort {
     const errors: unknown[] = [];
     if (page && recorder)
       await runCleanupStep(
-        () => recorder.beforeClose(() => page.screenshot({type: 'png'})),
+        () =>
+          recorder.beforeClose(() =>
+            page.screenshot({type: 'png', timeout: 5000})
+          ),
         errors
       );
     const video = page?.video();
