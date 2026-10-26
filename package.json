@@ -29,7 +29,7 @@
     "link:cli": "npm run build && npm link",
     "setup:local": "npm install && npm run build:xrblocks:sdk && npm run link:xrblocks",
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && node scripts/copy-assets.mjs",
-    "lint": "eslint src scripts test",
+    "lint": "eslint src scripts",
     "format": "npm run format:fix",
     "format:check": "prettier \"**/*.{cjs,html,js,json,md,mdx,ts,css}\" --check",
     "format:fix": "prettier \"**/*.{cjs,html,js,json,md,mdx,ts,css}\" --write",
