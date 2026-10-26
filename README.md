@@ -432,7 +432,6 @@ names before scene/context names.
 For a destination that has no named environment location, scene object, or
 context entry, pass its world coordinates directly: `navigateTo([0, 1.6, -2])`.
 
-
 To inspect a session object:
 
 ```js
