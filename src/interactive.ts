@@ -98,8 +98,8 @@ export function installInteractiveContext(
     server.context[name] = method.bind(session);
   }
   server.context.objects = session.objects;
+  server.context.inspect = session.objects.inspect;
   server.context.findByTag = session.objects?.findByTag;
-  server.context.inspect = session.objects?.inspect;
   server.context.simulator = session.simulator;
   server.context.addSimulatorObjects = session.simulator?.addObjects;
   server.context.updateSimulatorObjects = session.simulator?.updateObjects;

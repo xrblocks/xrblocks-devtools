@@ -94,8 +94,8 @@ export type SessionCloseResult = {
 };
 
 export type SessionObjects = {
-  findByTag(tag: string): Promise<Array<ObjectIdentity & {tag: string}>>;
   inspect(target: SessionTarget): Promise<ObjectInspection>;
+  findByTag(tag: string): Promise<Array<ObjectIdentity & {tag: string}>>;
 };
 
 export type SessionTarget =
@@ -133,15 +133,15 @@ export class XRBlocksSession {
     this.config = config;
     this.openRuntime = openRuntime;
     this.objects = {
+      inspect: (target: SessionTarget) =>
+        this.requireRuntime().invoke<ObjectInspection>('inspectObject', {
+          target,
+        }),
       findByTag: (tag: string) =>
         this.requireRuntime().invoke<Array<ObjectIdentity & {tag: string}>>(
           'findObjectsByTag',
           tag
         ),
-      inspect: (target: SessionTarget) =>
-        this.requireRuntime().invoke<ObjectInspection>('inspectObject', {
-          target,
-        }),
     };
     this.simulator = {
       addObjects: async (definitions: SimulatorObjectInput[]) => {

@@ -164,7 +164,11 @@ async function navigateTo(target) {
 }
 
 function resolveNavigationPosition(target) {
-  const resolved = resolveTarget(target);
+  const locations = getCore().simulator?.getLocations?.() ?? {};
+  const destination = typeof target === 'string' && Object.hasOwn(locations, target)
+    ? locations[target].position
+    : target;
+  const resolved = resolveTarget(destination);
   const camera = getCamera();
   const position = camera?.position?.clone?.();
   if (!position) {
