@@ -75,7 +75,23 @@ xrblocks-devtools visualize hand --pose relaxed \
   -o ./artifacts/hand.png
 ```
 
-Angles are in degrees, using XR Blocks' semantic biomechanical axes: for
+`--hand` selects `left`, `right`, or `both` (default). `--pose` accepts `neutral`,
+`relaxed`, `pinching`, `fist`, `thumbs_up`, `pointing`, `rock`, `thumbs_down`, or
+`victory`. `--views` supports the same presets as model previews. No preview
+module is needed. Use `--xrblocks-root` to select the SDK checkout.
+
+Repeat `--joint name=x,y,z` for different joints. CLI angles are in degrees;
+JavaScript `visualize({kind: 'hand', rotations, ...})` and Session `setHandPose`
+rotations use radians. Joint names and cache details are in the
+[hand preview reference](../skills/visualize-xrblocks/references/preview-modules.md#hand-previews).
+
+The first hand preview downloads both models from jsDelivr. They are cached in
+a versioned directory under `$XDG_CACHE_HOME/xrblocks-devtools/hands/`, falling
+back to `~/.cache/xrblocks-devtools/hands/`. Allow `cdn.jsdelivr.net` or populate
+the cache before an isolated run. `--assets-dir` applies to UI/model previews,
+not hand models.
+
+Angles use XR Blocks' semantic biomechanical axes: for
 long fingers, x flexes toward the palm, y spreads away from the middle finger,
 and z rolls toward the thumb. For the middle finger, positive y moves toward
 the index finger. For the thumb, x flexes across the palm, y abducts away from

@@ -66,7 +66,7 @@ function serializeDevtoolsValue(value, path, ancestors) {
     return value;
   }
   if (typeof value === 'undefined') {
-    throw new Error('Declared state is undefined: ' + path);
+    return null;
   }
   if (typeof value === 'function' || typeof value === 'symbol' || typeof value === 'bigint') {
     throw new Error('Declared state is not serializable: ' + path);
@@ -75,13 +75,15 @@ function serializeDevtoolsValue(value, path, ancestors) {
   ancestors.add(value);
   try {
     if (Array.isArray(value)) {
-      return value.map((item, index) =>
+      return Array.from(value, (item, index) =>
         serializeDevtoolsValue(item, path + '[' + index + ']', ancestors)
       );
     }
     const result = {};
     for (const key of Object.keys(value)) {
-      result[key] = serializeDevtoolsValue(value[key], path + '.' + key, ancestors);
+      const item = value[key];
+      if (item !== undefined)
+        result[key] = serializeDevtoolsValue(item, path + '.' + key, ancestors);
     }
     return result;
   } finally {

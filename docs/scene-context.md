@@ -36,8 +36,16 @@ startButton.userData.xrblocksDevtools = {
 };
 ```
 
-Devtools reads only `userData.xrblocksDevtools`. `state` must be finite,
-cycle-free JSON data. Getters are evaluated when context is captured.
+Devtools reads only `userData.xrblocksDevtools`. Getters are evaluated when
+context is captured. Undefined object fields are omitted; undefined or empty
+array entries become `null`. Other values must be finite, cycle-free JSON data;
+functions, symbols, and bigints are rejected with the field path. Getters should
+return current values without changing application state.
+
+`inspect(target)` returns `localTransform` and `worldTransform`, each containing
+`position`, `quaternion`, and `scale`. In `getDevtoolsContext`, the `tags`,
+`state`, `spatial`, and `view` arrays join by object `id`; a state entry does not
+repeat the tag.
 
 ```js
 findByTag('start-button');
@@ -66,7 +74,7 @@ coverage, and camera distances in meters.
 
 ## Target forms
 
-Embodied functions accept:
+Embodied actions accept:
 
 ```js
 pointTo('right', 'ctx_1'); // live ID from the current context snapshot
@@ -78,7 +86,34 @@ pointTo('right', {tag: 'start-button'});
 A string resolves as a live context ID first, then against names in the newest
 context snapshot, then exact scene object names. Duplicate names or tags are
 rejected. Refresh context before reusing an ID after an action. A tag is
-usually the most stable application contract.
+usually the most stable application contract. To select one of several objects
+with the same tag, use `{tag: 'item', id: runtimeId}` with an ID returned by
+`findByTag('item')`. Object inspection needs an object target, not coordinates.
+`navigateTo` also accepts simulator location names and resolves those before
+scene names; list them with `getDevtoolsContext({locations: true})`.
+
+String selectors in test output helpers, such as
+`expectVisible(session, 'start-button')`, mean tags. Action strings mean context
+IDs or names; pass `{tag: 'start-button'}` to target a tag with an action.
+
+## Choose the action
+
+- `reachTo(hand, target)` moves the fingertip for direct touch or dragging;
+  it does not aim the controller ray.
+- `pointTo(hand, target)` aims the ray without moving the hand.
+- `click(hand)` presses and releases the current selection input.
+- `rayClick(hand, target)` positions the hand, aims at the target, and clicks.
+- `startSelect` and `endSelect` hold and release selection for dragging.
+
+For a ray-selected control:
+
+```js
+rayClick('right', {tag: 'start-button'});
+getDevtoolsContext({state: true});
+```
+
+An action's completion confirms input delivery; inspect state and visual
+output to determine whether the app responded.
 
 ## Complete flow
 

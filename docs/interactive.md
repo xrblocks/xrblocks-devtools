@@ -13,6 +13,13 @@ xrblocks-devtools interact \
   --headed
 ```
 
+Install the app's dependencies before opening it. `--app-dir` detects Vite
+from the app's dependencies or `vite.config.*`, runs the installed Vite with the
+project configuration, and transforms the injected addon. Browser-ready static
+apps use a temporary copied workspace. Use `--url http://127.0.0.1:XXXX` to
+attach to an existing server instead. For URL mode, the page must resolve the
+embodied-control addon, or supply `--embodied-control-import` with a loadable URL.
+
 At `xrblocks>`, call functions without `await session.` boilerplate:
 
 ```js
@@ -26,10 +33,10 @@ when an assignment or a larger JavaScript expression needs the resolved value:
 
 ```js
 const box = await inspect({tag: 'draggable-box'});
-box.world.position;
+box.worldTransform.position;
 ```
 
-When finished developing or testing, enter `.exit` or Ctrl-D before This closes the REPL and browser inspection session, stops the
+When finished developing or testing, enter `.exit` or Ctrl-D. This closes the REPL and browser inspection session, stops the
 browser's frame loop, closes the local server, finalizes video, and removes
 temporary workspaces. SIGINT and SIGTERM request the same cleanup.
 
@@ -69,14 +76,27 @@ sequence.
 
 ## Voice input
 
+First activate the app's microphone or speech-recognition flow, for example by
+clicking its actual Listen control. The synthetic microphone supplies input
+to that consumer; it does not start the app's voice feature for you.
+
 ```js
 injectAudio({text: 'open inventory'});
-stepFrame(2);
 getDevtoolsContext({state: true});
 ```
 
-Use `injectAudio({file: './speech.wav'})` when TinyTTS is not installed. The
-application receives audio through the synthetic microphone path.
+`injectAudio` automatically waits for an active consumer. The wait uses the
+session's `timeoutMs` (`--timeout-ms` in the CLI), defaulting to 300000 ms. It
+reports a timeout if the app never starts listening. The optional Session method
+`waitForAudioConsumer({timeoutMs})` can separately inspect readiness when needed.
+`injectAudio({text})` requires the optional `tiny-tts` package and
+accepts up to 500 characters. Use `injectAudio({file: './speech.wav'})` for an
+existing RIFF/WAVE file without TinyTTS. Audio must contain non-silent samples,
+be at most 25 MB, and last at most 60 seconds. Only one injection can run at a time.
+Use `--monitor-audio` to hear the injected audio.
+
+Injection waits for playback to finish.  Wait for the app's observable result,
+then verify its state or visual output.
 
 ## Recording
 
@@ -106,12 +126,12 @@ the viewer and hands must change in one timed step:
 stepControl({
   durationMs: 500,
   control: {
-    locomotion: {move: [0, 0, 0.25], rotate: [0, 15, 0]},
+    locomotion: {move: [0, 0, -0.25], rotate: [0, 15, 0]},
     rightHand: {move: [0, 0, -0.1], selectStart: true},
   },
 });
 ```
 
-Movement tuples use meters. Rotation tuples use degrees. `durationMs` is the
+Movement tuples use camera-relative meters: +X right, +Y up, -Z forward. Rotation tuples use degrees. `durationMs` is the
 whole step duration. `applyControl(control)` applies the same shape immediately
 without advancing a frame.

@@ -1,4 +1,4 @@
 interface:
-  display_name: "Visualize XR Blocks"
-  short_description: "Inspect isolated XR models and UI visually"
-  default_prompt: "Use $visualize-xrblocks to render and inspect this XR Blocks model or UI."
+  display_name: 'Visualize XR Blocks'
+  short_description: 'Inspect XR models, UI, and posed hands visually'
+  default_prompt: 'Use $visualize-xrblocks to render and inspect this XR Blocks model, UI, or hand pose.'

@@ -1,6 +1,7 @@
 # Tagged output expectations
 
-Tagged output expectations verify application results without image judging.
+Import the helpers below from `@xrblocks/devtools/test`. Tagged output
+expectations verify application results without image judging.
 Add a stable tag to each output that a test must inspect:
 
 ```js
@@ -18,7 +19,8 @@ await expectVisible(session, 'settings-menu');
 await expectNotVisible(session, 'loading-indicator');
 ```
 
-Both helpers use the same visibility result. `expectVisible` passes when the
+String selectors in these helpers are DevTools tags, while action methods use
+strings for context IDs or names. Both helpers use the same visibility result. `expectVisible` passes when the
 tagged output has displayed geometry. `expectNotVisible` passes for the
 opposite result. An absent, hidden, empty, or fully transparent output is not
 visible.

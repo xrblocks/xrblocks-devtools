@@ -91,7 +91,12 @@ const sessionFlags = [
     'Set a browser-loadable embodied-control module',
     'module'
   ),
-  flag('timeout-ms', 'number', 'Set the browser startup timeout', 'ms'),
+  flag(
+    'timeout-ms',
+    'number',
+    'Set the Playwright timeout; SDK readiness remains 10 seconds',
+    'ms'
+  ),
 ] as const;
 
 const recordingFlags = [
@@ -209,7 +214,12 @@ const definitions: Record<CommandName, CommandDefinition> = {
       ),
       flag('entry', 'string', 'Select an app page path', 'path'),
       flag('output', 'string', 'Write result.json and artifacts here', 'dir'),
-      flag('timeout-ms', 'number', 'Set the browser startup timeout', 'ms'),
+      flag(
+        'timeout-ms',
+        'number',
+        'Set the Playwright timeout; SDK readiness remains 10 seconds',
+        'ms'
+      ),
       flag('judge-model', 'string', 'Select the model for AI judges', 'model'),
     ],
   },

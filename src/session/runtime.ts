@@ -295,6 +295,7 @@ class SessionRuntime implements SessionRuntimePort {
   async injectAudio(input: AudioInjection): Promise<AudioInjectionResult> {
     const materialized = await materializeAudioInjection(input);
     try {
+      await this.waitForAudioConsumer();
       const action = () =>
         this.requirePage().evaluate(
           async (args) => {

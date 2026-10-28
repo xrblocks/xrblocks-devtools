@@ -16,6 +16,8 @@ export function previewHtml(options: PreviewConfig) {
       {
         "imports": {
           "three": "./runtime/three/build/three.module.js",
+          "three/webgpu": "./runtime/three/build/three.webgpu.js",
+          "three/tsl": "./runtime/three/build/three.tsl.js",
           "three/": "./runtime/three/",
           "three/addons/": "./runtime/three/examples/jsm/"
         }

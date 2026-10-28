@@ -10,6 +10,7 @@ Create `status-card.preview.ts`:
 ```ts
 export default function preview({xb}) {
   return new xb.UICard({
+    size: {width: 0.6, height: 0.35},
     children: [new xb.UIText({text: 'System ready'})],
   });
 }
@@ -29,7 +30,9 @@ assets, and the render evidence loop.
 
 ## Inspect and control an application
 
-Open an application in a visible browser:
+Open an application in a visible browser. Install its dependencies first.
+DevTools launches Vite for Vite projects and serves a copied workspace for
+browser-ready static apps. Use `--url` when a server is already running:
 
 ```bash
 npx xrblocks-devtools interact \

@@ -7,7 +7,9 @@ Blocks applications. Designed to support agentic coding and testing.
 
 ### Install from npm
 
-Install Devtools in the XR Blocks application that will use it:
+Use Node.js 22 or newer, and satisfy the Node.js requirement of the app's
+installed Vite version. Install Devtools in the XR Blocks application that will
+use it:
 
 ```bash
 npm install --save-dev @xrblocks/devtools
@@ -26,7 +28,7 @@ Install the XR Blocks v0.20 runtime peers in the application, or pass
 `--xrblocks-root` when working against a source checkout:
 
 ```bash
-npm install xrblocks three @pmndrs/uikit @preact/signals-core lit
+npm install "xrblocks@^0.21.0" three @pmndrs/uikit @preact/signals-core lit
 ```
 
 The following optional dependencies add more functionality to XR Blocks Devtools.
@@ -111,7 +113,7 @@ for configuration and targeting details.
 
 - [Usage examples](docs/example.md) provides complete CLI, Interact, Session,
   and Agent examples.
-- [Visualize UI and Models](docs/visualize.md) defines preview modules, assets,
+- [Visualize UI, Models, and Hands](docs/visualize.md) defines preview modules, assets,
   views, and render verification.
 - [Test Applications Interactively](docs/interactive.md) covers observation,
   movement, input, audio, and recording.
@@ -130,18 +132,18 @@ xrblocks-devtools visualize <ui|model> <module|-> -o <out.png> [options]
 xrblocks-devtools visualize hand --pose <name> -o <out.png> [options]
 ```
 
-| Flag                    | Value and behavior                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| `-o`, `--out <path>`    | Required PNG output path. Parent directories are created.                                               |
-| `--size <WxH>`          | Output pixels. Defaults: UI `1024x768`; model/hand `1024x1024`.                                         |
-| `--bg <color>`          | CSS background color or `transparent`. Default `#f4f5f7`.                                               |
-| `--views <preset>`      | Model/hand: `inspection-4` (default), `turntable-4`, or `front`.                                        |
-| `--assets-dir <dir>`    | Files available below `/assets/`. Defaults to the module directory, or the current directory for stdin. |
-| `--xrblocks-root <dir>` | UI/hand: XR Blocks package or checkout used for the preview.                                            |
-| `--pose <name>`         | Hand base pose; default `relaxed`.                                                                      |
-| `--joint <name=x,y,z>`  | Hand joint override in degrees; repeatable.                                                             |
-| `--hand <side>`         | Render `left`, `right`, or `both` (default).                                                            |
-| `-h`, `--help`          | Show command help.                                                                                      |
+| Flag                    | Value and behavior                                                                                 |
+| ----------------------- | -------------------------------------------------------------------------------------------------- |
+| `-o`, `--out <path>`    | Required PNG output path. Parent directories are created.                                          |
+| `--size <WxH>`          | Output pixels. Defaults: UI `1024x768`; model/hand `1024x1024`.                                    |
+| `--bg <color>`          | CSS background color or `transparent`. Default `#f4f5f7`.                                          |
+| `--views <preset>`      | Model/hand: `inspection-4` (default), `turntable-4`, or `front`.                                   |
+| `--assets-dir <dir>`    | UI/model files below `/assets/`. Defaults to the module directory, or current directory for stdin. |
+| `--xrblocks-root <dir>` | UI/hand: XR Blocks package or checkout used for the preview.                                       |
+| `--pose <name>`         | Hand base pose; default `relaxed`.                                                                 |
+| `--joint <name=x,y,z>`  | Hand joint override in degrees; repeatable.                                                        |
+| `--hand <side>`         | Render `left`, `right`, or `both` (default).                                                       |
+| `-h`, `--help`          | Show command help.                                                                                 |
 
 Use `-` as the module to read TypeScript source from stdin. A UI module receives
 `{xb}` and returns exactly one public `xb.UICard` or `xb.UIOverlay`. A model
@@ -176,7 +178,7 @@ xrblocks-devtools interact (--app-dir <dir> | --url <url>) [options]
 | `--simulator-reach-limit`            | Enforce the simulator hand-reach radius.                                                                              |
 | `--simulator-navmesh`                | Reload the active simulator environment with its navmesh enabled, then constrain `navigateTo()`.                      |
 | `--embodied-control-import <module>` | Browser-loadable module specifier or URL for the embodied-control addon. Useful for URL sessions.                     |
-| `--timeout-ms <ms>`                  | Browser startup and operation timeout. Default `300000`.                                                              |
+| `--timeout-ms <ms>`                  | Playwright operation timeout; SDK readiness has a separate 10-second limit. Default `300000`.                         |
 | `--record-video <path>`              | Record action windows. Trimming targets MP4 when ffmpeg is available.                                                 |
 | `--record-checkpoints <path>`        | Record the initial frame, each action result, and the final frame.                                                    |
 | `--record-video-padding-ms <ms>`     | Time retained before and after actions. Default `500`.                                                                |
@@ -195,8 +197,8 @@ click('right');
 saveScreenshot('./artifacts/after.png');
 ```
 
-Exit with `.exit` or Ctrl-D. Exit always closes Chromium, finalizes recording,
-stops the local server, and removes the copied workspace.
+Exit with `.exit` or Ctrl-D. Exit closes Chromium and finalizes recording. It stops a server started by
+DevTools and removes any copied static workspace.
 
 ### Agent
 
@@ -375,21 +377,32 @@ const verdict = await judgeTrajectory({
 expect(verdict.verdict, verdict.reason).toBe(true);
 ```
 
-Run one test file against one prepared application:
+Run one test file against one prepared application. The supplied file is run
+directly; its name does not need a `.test` or `.spec` suffix. Supported extensions
+are `.js`, `.ts`, `.mjs`, `.cjs`, `.mts`, `.cts`, `.jsx`, and `.tsx`:
 
 ```text
 xrblocks-devtools test tests/evaluation.ts --app ./app [options]
 ```
 
-| Flag                    | Value and behavior                                                 |
-| ----------------------- | ------------------------------------------------------------------ |
-| `--app <dir>`           | Required Vite project or browser-ready application directory.      |
-| `--xrblocks-root <dir>` | XR Blocks checkout used by the application and `@xrblocks/source`. |
-| `--entry <path>`        | HTML page inside the application. Default `index.html`.            |
-| `--output <dir>`        | Result and recordings. Default `artifacts/xrblocks-test`.          |
-| `--timeout-ms <ms>`     | Browser startup timeout for session tests. Default `300000`.       |
-| `--judge-model <model>` | Model used by `judge()`. Overrides the default.                    |
-| `-h`, `--help`          | Show command help.                                                 |
+| Flag                    | Value and behavior                                                              |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| `--app <dir>`           | Required Vite project or browser-ready application directory.                   |
+| `--xrblocks-root <dir>` | XR Blocks checkout used by the application and `@xrblocks/source`.              |
+| `--entry <path>`        | HTML page inside the application. Default `index.html`.                         |
+| `--output <dir>`        | Result and recordings. Default `artifacts/xrblocks-test`.                       |
+| `--timeout-ms <ms>`     | Session Playwright timeout. Default `300000`; SDK readiness remains 10 seconds. |
+| `--judge-model <model>` | Model used by `judge()`. Overrides the default.                                 |
+| `-h`, `--help`          | Show command help.                                                              |
+
+The command writes `result.json`. Exit code `0` means the evaluation is valid;
+it does not mean that the application's tests passed. Exit code `1` means the
+evaluation is invalid, such as a test-file or collection error. Check `status`,
+`score`, `passedTests`, `totalTests`, and individual test results. A valid
+application failure can have score `0` and exit code `0`; an invalid evaluation
+has `score: null`. Missing files and unsupported extensions are reported with
+the supplied path. Empty files must declare tests through
+`@xrblocks/devtools/test`.
 
 Each test run contributes equally to the score. Hand and scene variants count
 as separate test runs. Set `required: true` to make any failed variant set the
@@ -422,7 +435,15 @@ it_session(
 
 Targets are a live Scene Context ID such as `ctx_1`, an exact unique
 scene/context name, a world position `[x, y, z]` in meters, or `{tag: 'name'}`.
-`left` and `right` select physical hands.
+`left` and `right` select physical hands. Action strings refer to context IDs
+or names; use `{tag: 'name'}` for a DevTools tag. Output-expectation helpers such
+as `expectVisible(session, 'name')` instead interpret strings as tags.
+
+Use `reachTo` to move a fingertip for touch or dragging; it does not aim the
+controller ray. Use `pointTo` to aim without moving the hand, then `click` to
+press and release. `rayClick(hand, target)` combines hand placement, aiming,
+and clicking. `startSelect` holds selection until `endSelect`; release it after
+an interrupted drag. See [target forms and examples](docs/scene-context.md#target-forms).
 
 `navigateTo()` also accepts named locations from the active simulator
 environment, such as `navigateTo('occlusion-target')`. List them with
@@ -482,20 +503,28 @@ await session.navigateTo([0, 1.6, -2]);
 | `rayClick(hand, target)`            | Move the hand near a target, aim its ray with deterministic fallback positions, and click.                                                |
 | `wait(durationMs)`                  | Advance real and simulation time by a positive number of milliseconds.                                                                    |
 | `stepFrame(frames?)`                | Advance positive frame count; default one frame at about 16.67 ms.                                                                        |
-| `injectAudio({file})`               | Inject a RIFF/WAVE file, maximum 25 MB.                                                                                                   |
+| `injectAudio({file})`               | Inject non-silent RIFF/WAVE audio, maximum 25 MB and 60 seconds.                                                                          |
 | `injectAudio({text})`               | Synthesize and inject up to 500 characters through optional TinyTTS.                                                                      |
+
+Enable the app's listening flow, then call `injectAudio` directly. It waits
+for a microphone or speech-recognition consumer using the session's `timeoutMs`
+(`--timeout-ms` in the CLI, default 300000 ms), and reports a timeout if none
+appears. Text input uses optional TinyTTS; WAV input does not. Successful injection reports audio delivery, not
+speech recognition or an AI response. See the complete
+[voice-input sequence](docs/interactive.md#voice-input).
 
 Low-level `applyControl(control)` applies a compound embodied control
 immediately. `stepControl({durationMs?, control?})` applies it while advancing
 frames. Locomotion and hand movement tuples use meters; rotation tuples use
-degrees; sparse hand-joint rotations use radians.
+degrees; sparse hand-joint rotations use radians. Raw movement tuples are
+camera-relative: +X right, +Y up, and -Z forward.
 
 The compound control shape is:
 
 ```ts
 {
   locomotion?: {
-    move?: [rightMeters, upMeters, forwardMeters];
+    move?: [xMeters, yMeters, zMeters];
     rotate?: [pitchDegrees, yawDegrees, rollDegrees];
   };
   leftHand?: {
@@ -527,6 +556,27 @@ See [docs/interactive.md](docs/interactive.md) for complete scenarios and
 
 ## Session API
 
+### REPL helpers, Session methods, and test imports
+
+The REPL exposes a `session` object and convenient direct functions. Helpers
+that save files or read diagnostics are not additional Session methods:
+
+| In the REPL                             | In Node.js code                                                       |
+| --------------------------------------- | --------------------------------------------------------------------- |
+| `inspect(target)`                       | `session.objects.inspect(target)`                                     |
+| `findByTag(tag)`                        | `session.objects.findByTag(tag)`                                      |
+| `getScreenshot(options)`                | `session.getScreenshot(options)` returns a PNG data URL               |
+| `saveScreenshot(path, options)`         | Write the data returned by `session.getScreenshot(options)` to a file |
+| `inspectScene()`                        | `session.observe('inspectScene')`                                     |
+| `diagnostics()`                         | `session.diagnostics` is a property                                   |
+| `addSimulatorObjects(defs)`             | `session.simulator.addObjects(defs)`                                  |
+| `session.waitForAudioConsumer(options)` | `session.waitForAudioConsumer(options)`                               |
+
+Import `XRBlocksSession` and `visualize` from `@xrblocks/devtools`. Import test
+registration, assertions, `captureOutputSnapshot`, and judges from
+`@xrblocks/devtools/test`. `session.getScreenshot()` returns data; there is no
+`session.saveScreenshot()` or `session.screenshot()` method.
+
 ```ts
 import {XRBlocksSession} from '@xrblocks/devtools';
 
@@ -557,7 +607,12 @@ app's installed Vite with its configuration, serves the original directory so
 edits reload, and loads the embodied-control addon through Vite. It selects an
 available localhost port and closes the server when the session ends or startup
 fails. The app's configured port and automatic browser opening are overridden.
-Directories without Vite use the static workspace server.
+Directories without Vite use a copied static workspace. Their source must be
+browser-ready; this path does not bundle arbitrary package imports. Vite serves
+the original project, so source edits are visible on reload; a full page reload
+requires reopening the DevTools session to restore its injected harness.
+The test command uses `--app <dir>` for either directory type; `--url` is
+available on `interact` and `agent`.
 
 ```sh
 xrblocks-devtools interact --app-dir ./my-vite-app
@@ -581,31 +636,14 @@ With `?debug=1`, the SDK automatically creates `window.xb` and
 code. `window.xb` exposes the full SDK namespace; `window.xbReady` is a Promise
 that resolves after SDK initialization or rejects if initialization fails.
 
-A custom vendor build that bypasses the SDK's debug-registering entry point
-must provide this bridge in its application entry (`main.js`). For that build,
-use this initialization instead of a separate `xb.init()` call:
+Startup fails immediately on browser exceptions, console errors, failed
+requests, or HTTP responses with status 400 or higher. The error includes the
+original message and the request URL when available. Use that error to fix the
+app or its loading configuration.
 
-```js
-import * as xb from 'xrblocks';
-
-const options = new xb.Options();
-if (new URLSearchParams(location.search).get('debug') === '1') {
-  window.xb = xb;
-  window.xbReady = xb.init(options);
-  await window.xbReady;
-} else {
-  await xb.init(options);
-}
-```
-
-```js
-if (!window.xb || !window.xbReady) {
-  throw new Error('Load XRBlocks with ?debug=1 first.');
-}
-
-await window.xbReady;
-const core = window.xb.core;
-```
+If no error occurs but SDK readiness never resolves, startup fails after
+10 seconds. `timeoutMs` / `--timeout-ms` sets Playwright's default operation
+timeout (300000 ms by default).
 
 ### Session recording
 
@@ -662,7 +700,9 @@ object.userData.xrblocksDevtools = {
 };
 ```
 
-Devtools reads only `userData.xrblocksDevtools`. `state` must contain finite, cycle-free JSON data (dynamic state functions should be declared as getters rather than raw function values).
+Devtools reads only `userData.xrblocksDevtools`. Undefined object fields are
+omitted, and undefined or empty array entries become `null`. Other state values
+must be finite, cycle-free JSON data.
 
 You can query tagged objects and grab their evaluated state:
 
@@ -788,7 +828,7 @@ The agent always receives the `exit` tool. DevTools tags are untrusted navigatio
 hints. They do not prove that the app met a requirement.
 
 Set `recordAgent: {outDir}` in `XRBlocksSessionConfig` to save each run as JSONL
-and separate image files. Session tests set this option automatically. Use
+and separate image files. Use
 `judgeTrajectory()` to turn a trajectory and optional supporting evidence into
 `{verdict, reason}`. Keep the final assertion explicit with Vitest `expect()`.
 

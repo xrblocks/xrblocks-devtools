@@ -22,7 +22,8 @@ can prove it are explicit.
 
 ## 2. Open one Session
 
-Start Interact mode against an app directory or existing URL. Keep its terminal
+Start Interact mode against a Vite project, browser-ready static app directory,
+or existing URL. Directory mode starts the appropriate server. Keep its terminal
 session so later expressions reach the same `xrblocks>` prompt.
 
 Complete this step when the REPL is ready and its startup URL identifies the
@@ -51,8 +52,8 @@ Capture the same evidence after input and inspect every saved image or video
 used in the conclusion. Treat action completion as input delivery, not an
 application assertion.
 
-Exit with `.exit` or Ctrl-D. Verify that the CLI, browser, and local server have
-stopped.
+Exit with `.exit` or Ctrl-D. Verify that the CLI, browser, and any server
+started by DevTools have stopped. Leave an existing `--url` server running.
 
 Finish only when the postcondition has direct before/after evidence, every
 reported artifact was inspected, and the Session process is closed.

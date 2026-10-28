@@ -70,6 +70,8 @@ export async function runTests(
       {
         root,
         config: false,
+        include: [path.basename(testFile).replace(/[?*()[\]{}!+@]/g, '\\$&')],
+        exclude: [],
         watch: false,
         run: true,
         environment: 'node',
@@ -119,9 +121,11 @@ export async function runTests(
   try {
     vitest.provide('xrblocksTest', provided);
     const run = await vitest.start([testFile]);
-    collectRun(result, run.testModules, run.unhandledErrors);
+    collectRun(result, run.testModules, run.unhandledErrors, testFile);
   } catch (error) {
-    invalidate(result, toError(error, 'verifier', 'collection'));
+    const failure = toError(error, 'verifier', 'collection');
+    failure.message = `Could not collect tests from ${testFile}: ${failure.message}`;
+    invalidate(result, failure);
   } finally {
     try {
       await vitest.close();
@@ -140,7 +144,8 @@ const SILENT_REPORTER: Reporter = {};
 function collectRun(
   result: EvaluationResult,
   modules: TestModule[],
-  unhandledErrors: unknown[]
+  unhandledErrors: unknown[],
+  testFile: string
 ): void {
   for (const error of unhandledErrors)
     invalidate(result, toError(error, 'verifier', 'collection'));
@@ -211,7 +216,7 @@ function collectRun(
     invalidate(result, {
       kind: 'verifier',
       phase: 'collection',
-      message: 'The evaluation did not collect any XR Blocks tests.',
+      message: `No XR Blocks tests were collected from ${testFile}. Define tests with it() or it_session() from @xrblocks/devtools/test.`,
     });
   }
 }
@@ -294,6 +299,10 @@ async function preflight(
   const tests = path.resolve(options.tests);
   if (!(await isFile(tests)))
     throw new TypeError(`Test file is missing: ${tests}.`);
+  if (!/\.(?:[cm]?[jt]s|[jt]sx)$/.test(tests))
+    throw new TypeError(
+      `Unsupported test file: ${tests}. Use .js, .ts, .mjs, .cjs, .mts, .cts, .jsx, or .tsx; no .test or .spec suffix is required.`
+    );
 
   const appDir = path.resolve(options.app.appDir);
   if (!(await isDirectory(appDir)))
