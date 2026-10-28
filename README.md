@@ -164,25 +164,25 @@ The result is `{out, warnings}`. UI warnings also print to stderr. See
 xrblocks-devtools interact (--app-dir <dir> | --url <url>) [options]
 ```
 
-| Flag                                 | Value and behavior                                                                                             |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `--app-dir <dir>`                    | Copy and serve one browser-runnable application directory. Exactly one of `--app-dir` and `--url` is required. |
-| `--url <url>`                        | Attach to an application that is already served.                                                               |
-| `--xrblocks-root <dir>`              | App-directory only: XR Blocks package or checkout used by the copied workspace.                                |
-| `--entry <path>`                     | App-directory only: HTML page inside the copied app. Default `index.html`.                                     |
-| `--headed`                           | Show Chromium. Sessions are headless by default.                                                               |
-| `--monitor-audio`                    | Play injected microphone audio through Chromium output. Default false.                                         |
-| `--no-realtime`                      | Disable real-time embodied-control pacing. Real-time pacing is enabled by default.                             |
-| `--simulator-reach-limit`            | Enforce the simulator hand-reach radius.                                                                       |
-| `--simulator-navmesh`                | Reload the active simulator environment with its navmesh enabled, then constrain `navigateTo()`.               |
-| `--embodied-control-import <module>` | Browser-loadable module specifier or URL for the embodied-control addon. Useful for URL sessions.              |
-| `--timeout-ms <ms>`                  | Browser startup and operation timeout. Default `300000`.                                                       |
-| `--record-video <path>`              | Record action windows. Trimming targets MP4 when ffmpeg is available.                                          |
-| `--record-checkpoints <path>`        | Record the initial frame, each action result, and the final frame.                                             |
-| `--record-video-padding-ms <ms>`     | Time retained before and after actions. Default `500`.                                                         |
-| `--record-video-scope <scope>`       | Keep `actions`, everything after `scene` readiness, or the `full` WebM. Default `actions`.                     |
-| `--keep-raw-video`                   | Preserve Playwright's raw WebM after successful trimming.                                                      |
-| `-h`, `--help`                       | Show flags and REPL functions.                                                                                 |
+| Flag                                 | Value and behavior                                                                                                    |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `--app-dir <dir>`                    | Serve a Vite project or copy and serve a browser-ready directory. Exactly one of `--app-dir` and `--url` is required. |
+| `--url <url>`                        | Attach to an application that is already served.                                                                      |
+| `--xrblocks-root <dir>`              | App-directory only: XR Blocks package or checkout used by the application.                                            |
+| `--entry <path>`                     | App-directory only: HTML page inside the application. Default `index.html`.                                           |
+| `--headed`                           | Show Chromium. Sessions are headless by default.                                                                      |
+| `--monitor-audio`                    | Play injected microphone audio through Chromium output. Default false.                                                |
+| `--no-realtime`                      | Disable real-time embodied-control pacing. Real-time pacing is enabled by default.                                    |
+| `--simulator-reach-limit`            | Enforce the simulator hand-reach radius.                                                                              |
+| `--simulator-navmesh`                | Reload the active simulator environment with its navmesh enabled, then constrain `navigateTo()`.                      |
+| `--embodied-control-import <module>` | Browser-loadable module specifier or URL for the embodied-control addon. Useful for URL sessions.                     |
+| `--timeout-ms <ms>`                  | Browser startup and operation timeout. Default `300000`.                                                              |
+| `--record-video <path>`              | Record action windows. Trimming targets MP4 when ffmpeg is available.                                                 |
+| `--record-checkpoints <path>`        | Record the initial frame, each action result, and the final frame.                                                    |
+| `--record-video-padding-ms <ms>`     | Time retained before and after actions. Default `500`.                                                                |
+| `--record-video-scope <scope>`       | Keep `actions`, everything after `scene` readiness, or the `full` WebM. Default `actions`.                            |
+| `--keep-raw-video`                   | Preserve Playwright's raw WebM after successful trimming.                                                             |
+| `-h`, `--help`                       | Show flags and REPL functions.                                                                                        |
 
 The prompt is a JavaScript REPL. Call functions directly; returned promises are
 awaited automatically:
@@ -383,7 +383,7 @@ xrblocks-devtools test tests/evaluation.ts --app ./app [options]
 
 | Flag                    | Value and behavior                                                 |
 | ----------------------- | ------------------------------------------------------------------ |
-| `--app <dir>`           | Required browser-runnable application directory.                   |
+| `--app <dir>`           | Required Vite project or browser-ready application directory.      |
 | `--xrblocks-root <dir>` | XR Blocks checkout used by the application and `@xrblocks/source`. |
 | `--entry <path>`        | HTML page inside the application. Default `index.html`.            |
 | `--output <dir>`        | Result and recordings. Default `artifacts/xrblocks-test`.          |
@@ -549,6 +549,19 @@ also set `xrblocksRoot` and `entry`. Shared options are `headless`, `timeoutMs`,
 `viewport` in pixels, `realTime`, `monitorAudio`, `simulatorReachLimit`,
 `simulatorNavMesh`,
 `embodiedControlImport`, `recording`, `recordAgent`, and `signal`.
+
+For `appDir` sessions (`interact --app-dir`, `agent --app-dir`, and `test --app`),
+DevTools detects Vite from the app's `package.json` dependencies or a
+`vite.config.*` file. Install the app's dependencies first. DevTools starts the
+app's installed Vite with its configuration, serves the original directory so
+edits reload, and loads the embodied-control addon through Vite. It selects an
+available localhost port and closes the server when the session ends or startup
+fails. The app's configured port and automatic browser opening are overridden.
+Directories without Vite use the static workspace server.
+
+```sh
+xrblocks-devtools interact --app-dir ./my-vite-app
+```
 
 URL sessions bypass workspace injection. DevTools adds
 `?xrAutomation=1&debug=1` to the page URL automatically. The page must resolve the embodied-control addon; set `embodiedControlImport` to a browser-loadable URL when needed.

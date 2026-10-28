@@ -25,6 +25,7 @@ import {
 } from './recording.js';
 import type {MaterializedAppWorkspace} from './workspace.js';
 import {materializeAppWorkspace} from './workspace.js';
+import {serveViteApp} from './vite.js';
 import {
   DEFAULT_SESSION_TIMEOUT_MS,
   type BrowserDiagnostics,
@@ -121,17 +122,32 @@ class SessionRuntime implements SessionRuntimePort {
       signal?.removeEventListener('abort', onAbort);
 
     let targetUrl: string;
+    let embodiedControlImport = this.options.embodiedControlImport;
     if ('url' in this.options.target) {
       targetUrl = appendSessionQuery(this.options.target.url);
     } else {
-      this.workspace = await materializeAppWorkspace({
+      const vite = await serveViteApp({
         appDir: this.options.target.appDir,
         xrblocksRoot: this.options.target.xrblocksRoot,
-        simulatorNavMesh: this.options.simulatorNavMesh,
+        signal,
       });
+      if (vite) {
+        this.server = vite;
+        targetUrl = appendSessionQuery(
+          new URL(this.options.target.entry ?? '.', vite.url).href
+        );
+        embodiedControlImport ??= vite.embodiedControlImport;
+      } else {
+        this.workspace = await materializeAppWorkspace({
+          appDir: this.options.target.appDir,
+          xrblocksRoot: this.options.target.xrblocksRoot,
+          simulatorNavMesh: this.options.simulatorNavMesh,
+        });
+        signal?.throwIfAborted();
+        this.server = await serveDirectory(this.workspace.rootDir);
+        targetUrl = resolveAppUrl(this.server.url, this.options.target.entry);
+      }
       signal?.throwIfAborted();
-      this.server = await serveDirectory(this.workspace.rootDir);
-      targetUrl = resolveAppUrl(this.server.url, this.options.target.entry);
     }
 
     this.recorder = await createSessionRecorder(this.options.recording);
@@ -170,7 +186,7 @@ class SessionRuntime implements SessionRuntimePort {
     await this.page.evaluate(await injectedHarnessSource());
     await this.evaluateHarness('init', {
       embodiedControlImport:
-        this.options.embodiedControlImport ?? DEFAULT_EMBODIED_CONTROL_IMPORT,
+        embodiedControlImport ?? DEFAULT_EMBODIED_CONTROL_IMPORT,
       embodiedControlOptions: {
         autoPause: true,
         realTime: this.options.realTime ?? true,
