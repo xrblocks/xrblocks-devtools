@@ -4,6 +4,7 @@ import type {
   ConsoleMessage,
   Page,
   Request,
+  Response,
 } from 'playwright';
 import type {JsonObject} from '../types.js';
 import {getChromiumLaunchArgs} from '../browser.js';
@@ -180,21 +181,63 @@ class SessionRuntime implements SessionRuntimePort {
     this.page.on('pageerror', (error) => this.onPageError(error));
     this.page.on('requestfailed', (request) => this.onRequestFailed(request));
     await this.page.addInitScript({content: await injectedAudioSource()});
-    await this.page.goto(targetUrl, {waitUntil: 'domcontentloaded'});
-    signal?.throwIfAborted();
-    await this.waitForDebugReady();
-    await this.page.evaluate(await injectedHarnessSource());
-    await this.evaluateHarness('init', {
-      embodiedControlImport:
-        embodiedControlImport ?? DEFAULT_EMBODIED_CONTROL_IMPORT,
-      embodiedControlOptions: {
-        autoPause: true,
-        realTime: this.options.realTime ?? true,
-      },
-      simulatorReachLimit: this.options.simulatorReachLimit,
-      simulatorNavMesh: this.options.simulatorNavMesh,
+    const page = this.page;
+    let rejectStartup!: (error: Error) => void;
+    const startupError = new Promise<never>((_, reject) => {
+      rejectStartup = reject;
     });
-    await this.evaluateHarness('ready');
+    const onPageError = (error: Error) => rejectStartup(error);
+    const onConsole = (message: ConsoleMessage) => {
+      if (message.type() === 'error') {
+        const url = message.location().url;
+        rejectStartup(new Error(`${message.text()}${url ? ` (${url})` : ''}`));
+      }
+    };
+    const onRequestFailed = (request: Request) =>
+      rejectStartup(
+        new Error(
+          `${request.failure()?.errorText ?? 'Request failed'}: ${request.method()} ${request.url()}`
+        )
+      );
+    const onResponse = (response: Response) => {
+      if (response.status() >= 400)
+        rejectStartup(
+          new Error(
+            `HTTP ${response.status()} ${response.statusText()}: ${response.url()}`
+          )
+        );
+    };
+    page.on('pageerror', onPageError);
+    page.on('console', onConsole);
+    page.on('requestfailed', onRequestFailed);
+    page.on('response', onResponse);
+    try {
+      await Promise.race([
+        startupError,
+        (async () => {
+          await page.goto(targetUrl, {waitUntil: 'domcontentloaded'});
+          signal?.throwIfAborted();
+          await this.waitForDebugReady();
+          await page.evaluate(await injectedHarnessSource());
+          await this.evaluateHarness('init', {
+            embodiedControlImport:
+              embodiedControlImport ?? DEFAULT_EMBODIED_CONTROL_IMPORT,
+            embodiedControlOptions: {
+              autoPause: true,
+              realTime: this.options.realTime ?? true,
+            },
+            simulatorReachLimit: this.options.simulatorReachLimit,
+            simulatorNavMesh: this.options.simulatorNavMesh,
+          });
+          await this.evaluateHarness('ready');
+        })(),
+      ]);
+    } finally {
+      page.off('pageerror', onPageError);
+      page.off('console', onConsole);
+      page.off('requestfailed', onRequestFailed);
+      page.off('response', onResponse);
+    }
     signal?.throwIfAborted();
     this.recorder?.sceneReady();
     this.info = {url: targetUrl};
