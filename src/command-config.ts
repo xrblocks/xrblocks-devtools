@@ -22,11 +22,12 @@ type CommandDefinition = {
   flags: readonly FlagDefinition[];
 };
 
-type CommandName = 'visualize' | 'interact' | 'agent' | 'test';
+type CommandName = 'visualize' | 'interact' | 'agent' | 'test' | 'mcp';
 
 type FlagValues = Record<string, string | number | boolean | string[]>;
 
 export type ParsedCommand =
+  | {kind: 'mcp'; port: number}
   | {kind: 'help'; command?: CommandName; exitCode: number}
   | {
       kind: 'visualize';
@@ -123,6 +124,20 @@ const recordingFlags = [
 ] as const;
 
 const definitions: Record<CommandName, CommandDefinition> = {
+  mcp: {
+    name: 'mcp',
+    usage: 'mcp [--port <port>]',
+    summary:
+      'Serve shared XR sessions and previews over MCP at http://127.0.0.1:3100/mcp.',
+    flags: [
+      flag(
+        'port',
+        'number',
+        'Listen on this localhost port (default 3100)',
+        'port'
+      ),
+    ],
+  },
   visualize: {
     name: 'visualize',
     usage:
@@ -327,6 +342,12 @@ export function parseCommand(
 
   if (parsed.positionals.length > 0) {
     throw new Error(`Unexpected argument: ${parsed.positionals[0]}`);
+  }
+  if (name === 'mcp') {
+    const port = numberValue(parsed.flags, 'port') ?? 3100;
+    if (!Number.isInteger(port) || port < 1 || port > 65535)
+      throw new Error('--port must be an integer between 1 and 65535.');
+    return {kind: 'mcp', port};
   }
   const session = sessionConfig(parsed.flags, name, signal);
   if (name === 'interact') {

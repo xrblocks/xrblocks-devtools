@@ -17,6 +17,11 @@ export async function main(argv = process.argv.slice(2), signal?: AbortSignal) {
   loadDotEnv();
   const command = parseCommand(argv, signal);
   switch (command.kind) {
+    case 'mcp': {
+      const {runMcp} = await import('./mcp/index.js');
+      await runMcp(command.port, signal);
+      return 0;
+    }
     case 'help': {
       const help = commandHelp(command.command);
       console.log(

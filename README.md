@@ -120,6 +120,19 @@ for configuration and targeting details.
 - [Use Scene Context with Embodied Actions](docs/scene-context.md) explains
   targeting, developer metadata, and state verification.
 
+## MCP server
+
+Run the MCP server:
+
+```sh
+npx --no-install xrblocks-devtools mcp --port 3100
+```
+
+Connect clients over Streamable HTTP at `http://127.0.0.1:3100/mcp`. Each agent
+opens an independent XR session and uses its returned `sessionId` for interaction.
+The server also exposes UI, model, and hand previews with inline image results.
+See [MCP setup and tool usage](docs/mcp.md).
+
 ## CLI
 
 Use `xrblocks-devtools help <command>` to read help generated from the same
