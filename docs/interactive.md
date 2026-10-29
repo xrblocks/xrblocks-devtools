@@ -95,7 +95,7 @@ existing RIFF/WAVE file without TinyTTS. Audio must contain non-silent samples,
 be at most 25 MB, and last at most 60 seconds. Only one injection can run at a time.
 Use `--monitor-audio` to hear the injected audio.
 
-Injection waits for playback to finish.  Wait for the app's observable result,
+Injection waits for playback to finish. Wait for the app's observable result,
 then verify its state or visual output.
 
 ## Recording
