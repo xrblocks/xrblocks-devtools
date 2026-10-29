@@ -29,8 +29,7 @@ function startUi(preview: Preview) {
     options.simulator.activeEnvironmentIndex = 0;
     window.__xrblocksVisualizer!.dispose = () => xb.core.dispose();
     await xb.init(options);
-    if (stagedCard) fitPreviewCamera(stagedCard);
-    return await validationWarnings(root);
+    return await validationWarnings(root, stagedCard);
   });
 }
 
@@ -53,21 +52,26 @@ function stage(root: xb.UICard | xb.UIOverlay) {
 
 function fitPreviewCamera(root: xb.UICard) {
   const config = window.__xrblocksVisualizerConfig;
-  const cardWidth = root.size.width;
-  const cardHeight =
-    root.size.height === 'auto'
-      ? cardWidth / (config.width / config.height)
-      : root.size.height;
+  const presentation = xb.getUIPresentationObject(root);
+  if (!presentation) throw new Error('UI preview has no resolved card layout.');
+  presentation.updateWorldMatrix(true, false);
+  const matrix = presentation.matrixWorld.elements;
+  const cardWidth = Math.hypot(matrix[0], matrix[1], matrix[2]);
+  const cardHeight = Math.hypot(matrix[4], matrix[5], matrix[6]);
   const verticalSizeAtOneMeter =
     Math.max(cardHeight, cardWidth / (config.width / config.height)) / 0.9;
   xb.camera.fov = (2 * Math.atan(verticalSizeAtOneMeter / 2) * 180) / Math.PI;
   xb.camera.updateProjectionMatrix();
 }
 
-async function validationWarnings(root: xb.UICard | xb.UIOverlay) {
+async function validationWarnings(
+  root: xb.UICard | xb.UIOverlay,
+  stagedCard?: xb.UICard
+) {
   for (let frame = 0; frame < 180; frame += 1) {
     const report = xb.ui.validate(root);
     if (report.ready) {
+      if (stagedCard) fitPreviewCamera(stagedCard);
       for (let frame = 0; frame < 6; frame += 1) await nextFrame();
       return xb.ui
         .validate(root)
