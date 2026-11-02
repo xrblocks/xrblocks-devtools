@@ -78,7 +78,7 @@ async function readModelFileAsDataUrl(filePath: string): Promise<string> {
   }
 
   const ext = path.extname(filePath).toLowerCase();
-  let mimeType = 'model/gltf-binary';
+  let mimeType: string;
   if (ext === '.gltf' || ext === '.json') {
     mimeType = 'model/gltf+json';
   } else if (ext === '.glb') {

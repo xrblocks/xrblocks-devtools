@@ -110,7 +110,8 @@ async function synthesizeText(text: string, outputPath: string) {
   } catch (error) {
     if (isMissingTinyTTSError(error)) {
       throw new Error(
-        'Text-to-speech requires the optional tiny-tts package. Install it with `npm install --save-dev tiny-tts`.'
+        'Text-to-speech requires the optional tiny-tts package. Install it with `npm install --save-dev tiny-tts`.',
+        {cause: error}
       );
     }
     throw error;
