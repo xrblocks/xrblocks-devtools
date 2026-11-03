@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import preview from 'virtual:preview';
+import preview from 'virtual:input';
 import {nextFrame, start} from './runtime.js';
 
 type Preview = (context: {THREE: typeof THREE}) => unknown | Promise<unknown>;

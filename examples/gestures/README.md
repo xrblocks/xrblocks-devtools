@@ -16,6 +16,18 @@ pose presets. The 40 configurations vary finger curl, spread, and thumb position
 
 Shaka, three, and four are not XR Blocks named presets.
 
+The [heuristics example](heuristics/four.js) exports an SDK-compatible four
+detector with confidence diagnostics. Inspect or test its reviewed cases with:
+
+```sh
+node dist/cli.js inspect-hand-poses examples/gestures/heuristics/poses.json
+node dist/cli.js test-gesture-detector examples/gestures/heuristics/four.js \
+  examples/gestures/heuristics/poses.json
+```
+
+See [heuristic authoring](../../docs/heuristics.md) for noisy batches, multiple
+detectors, and exact-set evaluation.
+
 Every configuration specifies all 20 non-tip joint rotations. Unspecified-pose
 training configurations start from neutral. Both hands are generated with angle
 and keypoint noise: 40 configurations × 75 samples × 2 hands = 6,000 samples

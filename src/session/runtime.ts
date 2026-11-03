@@ -500,7 +500,6 @@ function appendSessionQuery(url: string) {
 
 declare global {
   interface Window {
-    xb?: {core?: unknown};
     xbReady?: Promise<void>;
     __xrblocksDevtoolsRuntime?: Record<string, unknown>;
     __xrblocksDevtoolsEmbodiedControl?: Record<string, unknown>;

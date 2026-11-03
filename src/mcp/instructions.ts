@@ -5,6 +5,8 @@ Choose the smallest workflow that answers the question:
 - train_gestures: generate a TFLite static hand-shape classifier from labeled hand configurations. Angle noise uses radians, keypoint noise uses meters. Include other poses for rejection. Synthetic validation does not measure real-hand accuracy.
 - sample_gestures: interpolate bone angles between hand poses. Review the rendered candidates before assigning labels, especially between different gestures. Suggested labels are not independent ground truth.
 - test_gesture_model: batch-score hand poses against a Devtools TFLite model. Inspect all class scores and top-two margins. Supply expected labels only for independently reviewed cases; null means the model should reject the pose. Compare results before retraining.
+- inspect_hand_poses: inspect SDK metrics for authored hand poses before choosing heuristic thresholds. Returns curl, straightness, spread, normalized distances, and world orientation.
+- test_gesture_detector: evaluate a trusted JS module exporting detectors against poses, optionally augmented. Keep SDK-compatible functions, inspect diagnostic data, and check false positives, misses, and overlaps. Use expected arrays for intentional multi-gesture matches and null for rejection. These tools use a temporary SDK browser, not a live session.
 - open_session and interaction tools: full app lifecycle, controller input, voice input, movement, runtime state, or integration behavior.
 
 Live app workflow:

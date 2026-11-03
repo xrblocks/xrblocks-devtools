@@ -2,6 +2,7 @@
 
 Agents can use the [gesture authoring skill](../skills/author-xrblocks-gestures/SKILL.md)
 for pose review, explicit background examples, interpolation, and evaluation.
+For ordinary SDK JavaScript detectors, see [heuristic authoring](heuristics.md).
 
 Train a static hand-shape classifier from the same named poses and sparse joint
 rotations used by hand visualization:

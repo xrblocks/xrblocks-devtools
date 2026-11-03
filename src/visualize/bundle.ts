@@ -1,13 +1,5 @@
 import {build} from 'esbuild';
-import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-import type {VisualizeKind} from './types.js';
-
-const browserEntries = {
-  ui: fileURLToPath(new URL('./browser/ui.js', import.meta.url)),
-  model: fileURLToPath(new URL('./browser/model.js', import.meta.url)),
-  hand: fileURLToPath(new URL('./browser/model.js', import.meta.url)),
-} satisfies Record<VisualizeKind, string>;
 
 // XR Blocks loads these packages only when their optional features are used.
 // Keep those imports lazy instead of making an isolated UI preview install
@@ -23,14 +15,14 @@ const xrblocksOptionalImports = [
   'troika-three-text',
 ];
 
-export async function bundlePreviewEntry(options: {
-  kind: VisualizeKind;
-  previewPath: string;
+export async function bundleBrowserEntry(options: {
+  entryPath: string;
+  modulePath: string;
   xrblocksEntry?: string;
   outfile: string;
 }) {
   await build({
-    entryPoints: [browserEntries[options.kind]],
+    entryPoints: [options.entryPath],
     outfile: options.outfile,
     bundle: true,
     format: 'esm',
@@ -39,13 +31,13 @@ export async function bundlePreviewEntry(options: {
     sourcemap: 'inline',
     external: ['three', 'three/*', ...xrblocksOptionalImports],
     logLevel: 'silent',
-    absWorkingDir: path.dirname(options.previewPath),
+    absWorkingDir: path.dirname(options.modulePath),
     plugins: [
       {
-        name: 'preview-module',
+        name: 'input-module',
         setup(build) {
-          build.onResolve({filter: /^virtual:preview$/}, () => ({
-            path: options.previewPath,
+          build.onResolve({filter: /^virtual:input$/}, () => ({
+            path: options.modulePath,
           }));
           if (options.xrblocksEntry) {
             build.onResolve({filter: /^xrblocks$/}, () => ({

@@ -1,8 +1,9 @@
 import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import os from 'node:os';
+import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {chromium, type Browser, type Page} from 'playwright';
-import {bundlePreviewEntry} from './bundle.js';
+import {bundleBrowserEntry} from './bundle.js';
 import {previewHtml} from './html.js';
 import {normalizePreviewInput} from './input.js';
 import {prepareHandPreview, validateHandPreview} from './hand.js';
@@ -66,9 +67,14 @@ export async function visualize(
     await symlinkDir(runtime.threeDir, path.join(tempDir, 'runtime', 'three'));
     await symlinkDir(input.assetsDir, path.join(tempDir, 'assets'));
     const entryJs = path.join(tempDir, 'entry.js');
-    await bundlePreviewEntry({
-      kind: options.kind,
-      previewPath: input.modulePath,
+    await bundleBrowserEntry({
+      entryPath: fileURLToPath(
+        new URL(
+          options.kind === 'ui' ? './browser/ui.js' : './browser/model.js',
+          import.meta.url
+        )
+      ),
+      modulePath: input.modulePath,
       xrblocksEntry: runtime.xrblocksEntry,
       outfile: entryJs,
     });

@@ -68,12 +68,19 @@ Ctrl-C or SIGTERM stops the MCP server and closes its sessions.
 | Objects     | `add_simulator_objects`, `update_simulator_objects`, `remove_simulator_objects`, `clear_simulator_objects`, `get_simulator_objects` |
 | Artifacts   | `save_set_of_mark`; `get_screenshot` with `out` replaces the REPL's `saveScreenshot` helper                                         |
 | Training    | `train_gestures`, `sample_gestures`, `test_gesture_model`                                                                           |
+| Heuristics  | `inspect_hand_poses`, `test_gesture_detector`                                                                                       |
 | Previews    | `visualize`                                                                                                                         |
 
 `train_gestures` accepts `{config, out}` without a Session. `sample_gestures`
 interpolates hand angles between two endpoints; `test_gesture_model` accepts
 `{model, poses}` and returns batch predictions, all scores, and optional reviewed
 expectations. See [gesture training and evaluation](gestures.md).
+
+`inspect_hand_poses` accepts `{poses}` and returns actual SDK measurements.
+`test_gesture_detector` accepts `{input: {path}, poses}` for a JavaScript module
+exporting a `detectors` map, with optional augmentation and cutoff settings.
+Both use a temporary browser and the installed SDK without a live Session.
+See [heuristic authoring](heuristics.md).
 
 Every interaction tool requires `sessionId`. Targets accept exact unique names,
 world `[x,y,z]` coordinates in meters, or `{tag:"name"}`. Disambiguate duplicate

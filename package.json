@@ -42,7 +42,8 @@
     "preeval-test-agent": "npm run build --silent",
     "eval-test-agent": "node scripts/eval-test-agent.mjs",
     "prepublishOnly": "npm run build",
-    "check:gestures": "npm run build && node scripts/check-gestures.mjs"
+    "check:gestures": "npm run build && node scripts/check-gestures.mjs",
+    "check:heuristics": "npm run build && node scripts/check-heuristics.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "^2.1.2",

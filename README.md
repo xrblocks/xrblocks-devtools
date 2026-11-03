@@ -191,7 +191,14 @@ inference. See [gesture training](docs/gestures.md).
 
 Use `sample-gestures <input.json>` to interpolate bone angles between two poses,
 then `test-gesture-model <model.tflite> <poses.json>` for batch predictions and
-all class scores. 
+all class scores.
+
+For JavaScript heuristics, use `inspect-hand-poses <poses.json>` to inspect the
+SDK's measurements and `test-gesture-detector <module.js> <poses.json>` to check
+scores, diagnostics, overlaps, false positives, and misses. The tester supports
+seeded noisy variants and ordinary SDK detector functions. These tools use a
+temporary SDK browser. See [heuristic authoring](docs/heuristics.md) and the
+[four detector example](examples/gestures/heuristics/four.js).
 
 ### Interact
 
@@ -895,6 +902,9 @@ JavaScript/TypeScript libraries and REST calls) can be extracted.
 - [`author-xrblocks-gestures`](skills/author-xrblocks-gestures/SKILL.md) authors
   positive and background hand poses, trains TFLite models, and evaluates misses
   and false detections.
+- [`author-xrblocks-heuristics`](skills/author-xrblocks-heuristics/SKILL.md)
+  identifies defining pose characteristics, authors JavaScript detectors, and
+  evaluates misses, false positives, and overlaps.
 
 The npm package contains these skill folders. Agent hosts must expose or install
 them through their normal skill-discovery mechanism.

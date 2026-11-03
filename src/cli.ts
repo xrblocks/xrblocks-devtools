@@ -7,6 +7,7 @@ import {readFile} from 'node:fs/promises';
 import {trainGestures} from './gestures/train.js';
 import {sampleGestures} from './gestures/sample.js';
 import {testGestureModel} from './gestures/test-model.js';
+import {inspectHandPoses, testGestureDetector} from './gestures/heuristics.js';
 import {createAiModel} from './agent/ai.js';
 import {XRBlocksSession} from './session/index.js';
 import {commandHelp, parseCommand} from './command-config.js';
@@ -21,6 +22,37 @@ export async function main(argv = process.argv.slice(2), signal?: AbortSignal) {
   loadDotEnv();
   const command = parseCommand(argv, signal);
   switch (command.kind) {
+    case 'inspect-hand-poses': {
+      const input = JSON.parse(await readFile(command.input, 'utf8'));
+      console.log(
+        JSON.stringify(
+          await inspectHandPoses(
+            Array.isArray(input) ? {poses: input} : input,
+            signal
+          ),
+          null,
+          2
+        )
+      );
+      return 0;
+    }
+    case 'test-gesture-detector': {
+      const input = JSON.parse(await readFile(command.input, 'utf8'));
+      console.log(
+        JSON.stringify(
+          await testGestureDetector(
+            {
+              ...(Array.isArray(input) ? {poses: input} : input),
+              input: {path: command.detector},
+            },
+            signal
+          ),
+          null,
+          2
+        )
+      );
+      return 0;
+    }
     case 'sample-gestures': {
       const input = JSON.parse(await readFile(command.input, 'utf8'));
       console.log(JSON.stringify(sampleGestures(input), null, 2));

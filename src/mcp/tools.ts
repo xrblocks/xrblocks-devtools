@@ -13,6 +13,11 @@ import {
 } from '../gestures/schema.js';
 import {sampleGestures} from '../gestures/sample.js';
 import {testGestureModel} from '../gestures/test-model.js';
+import {inspectHandPoses, testGestureDetector} from '../gestures/heuristics.js';
+import {
+  inspectHandPosesSchema,
+  testGestureDetectorSchema,
+} from '../gestures/schema.js';
 import {Sessions} from './sessions.js';
 import {saveImage, toolResult} from './results.js';
 import * as s from './schemas.js';
@@ -452,6 +457,19 @@ export function createTools(sessions: Sessions, signal: AbortSignal) {
     sampleGesturesSchema,
     (input) => sampleGestures(input),
     true
+  );
+  tool(
+    'inspect_hand_poses',
+    'Inspect synthetic hand poses using the actual XR Blocks metric helpers. Returns finger curl and straightness, bend cosines, spread, thumb opposition, fingertip distances in meters and palm widths, and world palm orientation. Uses a temporary browser and the installed SDK; no live session or hand meshes are needed. Pose rotations are radians.',
+    inspectHandPosesSchema,
+    (input) => inspectHandPoses(input, signal),
+    true
+  );
+  tool(
+    'test_gesture_detector',
+    'Execute a trusted JavaScript/TypeScript module exporting detectors: a map of gesture names to XR Blocks HeuristicGestureDetector functions. Batch-test poses in a temporary SDK browser. Returns all accepted gestures, confidences, diagnostic data, overlaps, false positives, and misses. Optional seeded augmentation reuses training articulation/keypoint noise. Expected labels can be a string, an array for intentional overlap, or null for rejection. This executes the supplied module; it does not train a model.',
+    testGestureDetectorSchema,
+    (input) => testGestureDetector(input, signal)
   );
   tool(
     'test_gesture_model',

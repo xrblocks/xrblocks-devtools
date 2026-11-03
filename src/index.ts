@@ -44,12 +44,15 @@ export {visualize} from './visualize/index.js';
 export {trainGestures} from './gestures/train.js';
 export {sampleGestures} from './gestures/sample.js';
 export {testGestureModel} from './gestures/test-model.js';
+export {inspectHandPoses, testGestureDetector} from './gestures/heuristics.js';
 export type {
   GestureTrainingConfig,
   GestureManifest,
   SampleGesturesRequest,
   TestGestureModelRequest,
   GestureTestPose,
+  InspectHandPosesRequest,
+  TestGestureDetectorRequest,
 } from './gestures/schema.js';
 export type {
   HandPreview,

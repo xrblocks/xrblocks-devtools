@@ -27,6 +27,8 @@ type CommandName =
   | 'train-gestures'
   | 'sample-gestures'
   | 'test-gesture-model'
+  | 'inspect-hand-poses'
+  | 'test-gesture-detector'
   | 'interact'
   | 'agent'
   | 'test'
@@ -36,6 +38,8 @@ type FlagValues = Record<string, string | number | boolean | string[]>;
 
 export type ParsedCommand =
   | {kind: 'sample-gestures'; input: string}
+  | {kind: 'inspect-hand-poses'; input: string}
+  | {kind: 'test-gesture-detector'; detector: string; input: string}
   | {kind: 'test-gesture-model'; model: string; input: string}
   | {kind: 'train-gestures'; config: string; out: string}
   | {kind: 'mcp'; port: number}
@@ -135,6 +139,20 @@ const recordingFlags = [
 ] as const;
 
 const definitions: Record<CommandName, CommandDefinition> = {
+  'inspect-hand-poses': {
+    name: 'inspect-hand-poses',
+    usage: 'inspect-hand-poses <poses.json>',
+    summary:
+      'Inspect XR Blocks metrics for hand poses; print curl, spread, distances, and orientation as JSON.',
+    flags: [],
+  },
+  'test-gesture-detector': {
+    name: 'test-gesture-detector',
+    usage: 'test-gesture-detector <module.js> <poses.json>',
+    summary:
+      'Batch-test a JavaScript detectors module using XR Blocks; print scores, diagnostics, misses, and overlaps as JSON.',
+    flags: [],
+  },
   'sample-gestures': {
     name: 'sample-gestures',
     usage: 'sample-gestures <input.json>',
@@ -299,15 +317,19 @@ export function parseCommand(
   const parsed = parseArguments(definition, args);
   if (parsed.help) return {kind: 'help', command: name, exitCode: 0};
 
-  if (name === 'sample-gestures' || name === 'test-gesture-model') {
-    const expected = name === 'sample-gestures' ? 1 : 2;
-    if (parsed.positionals.length !== expected)
+  if (name === 'sample-gestures' || name === 'inspect-hand-poses') {
+    if (parsed.positionals.length !== 1)
       throw new Error(`Usage: xrblocks-devtools ${definition.usage}`);
-    return name === 'sample-gestures'
-      ? {kind: name, input: parsed.positionals[0]}
+    return {kind: name, input: parsed.positionals[0]};
+  }
+  if (name === 'test-gesture-model' || name === 'test-gesture-detector') {
+    if (parsed.positionals.length !== 2)
+      throw new Error(`Usage: xrblocks-devtools ${definition.usage}`);
+    return name === 'test-gesture-model'
+      ? {kind: name, model: parsed.positionals[0], input: parsed.positionals[1]}
       : {
           kind: name,
-          model: parsed.positionals[0],
+          detector: parsed.positionals[0],
           input: parsed.positionals[1],
         };
   }

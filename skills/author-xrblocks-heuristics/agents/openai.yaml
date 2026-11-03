@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Author XR Blocks Heuristics'
+  short_description: 'Build gesture rules from defining pose characteristics'
+  default_prompt: 'Use $author-xrblocks-heuristics to identify the defining characteristics of these hand poses, author SDK-compatible heuristic detectors, and evaluate their misses, false positives, and overlaps.'

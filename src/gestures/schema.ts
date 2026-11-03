@@ -53,6 +53,67 @@ export const testGestureModelSchema = z.strictObject({
 export type SampleGesturesRequest = z.input<typeof sampleGesturesSchema>;
 export type GestureTestPose = z.input<typeof gestureTestPoseSchema>;
 export type TestGestureModelRequest = z.input<typeof testGestureModelSchema>;
+
+export const heuristicPoseSchema = gestureTestPoseSchema.extend({
+  expected: z.union([label, z.array(label).max(16), z.null()]).optional(),
+});
+export const inspectHandPosesSchema = z.strictObject({
+  poses: z.array(heuristicPoseSchema).min(1).max(1000),
+  xrblocksRoot: z.string().trim().min(1).optional(),
+});
+export const testGestureDetectorSchema = inspectHandPosesSchema
+  .extend({
+    input: z.union([
+      z.strictObject({path: z.string().trim().min(1)}),
+      z.strictObject({source: z.string().min(1).max(100000)}),
+    ]),
+    minimumConfidence: z.number().min(0).max(1).default(0.6),
+    configurations: z
+      .record(
+        label,
+        z.strictObject({
+          enabled: z.boolean().default(true),
+          threshold: z.number().optional(),
+        })
+      )
+      .default({}),
+    augmentation: z
+      .strictObject({
+        seed: z.number().int().min(0).max(0xffffffff).default(42),
+        samplesPerPose: z.number().int().min(2).max(200).default(25),
+        angleStddevRadians: z.number().min(0).max(0.5).default(0.08),
+        keypointStddevMeters: z.number().min(0).max(0.01).default(0.001),
+      })
+      .optional(),
+  })
+  .superRefine((options, context) => {
+    const count =
+      options.poses.reduce(
+        (sum, pose) => sum + (pose.hand === 'both' ? 2 : 1),
+        0
+      ) * (options.augmentation?.samplesPerPose ?? 1);
+    if (count > 20000)
+      context.addIssue({
+        code: 'custom',
+        message:
+          'Too many pose samples; limit the batch to 20,000 hand samples.',
+      });
+  });
+export type InspectHandPosesRequest = z.input<typeof inspectHandPosesSchema>;
+export type TestGestureDetectorRequest = z.input<
+  typeof testGestureDetectorSchema
+>;
+export type HeuristicPose = z.output<typeof heuristicPoseSchema>;
+export const detectorLabelsSchema = z
+  .array(
+    label.refine(
+      (value) => value !== 'other',
+      'Use no accepted gestures for rejection, not an other detector.'
+    )
+  )
+  .min(1)
+  .max(16);
+
 export const gestureTrainingSchema = z
   .strictObject({
     features: features.default('palm-local-xyz-v1'),

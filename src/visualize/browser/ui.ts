@@ -1,5 +1,5 @@
 import * as xb from 'xrblocks';
-import preview from 'virtual:preview';
+import preview from 'virtual:input';
 import {nextFrame, start} from './runtime.js';
 
 type Preview = (context: {xb: typeof xb}) => unknown | Promise<unknown>;
