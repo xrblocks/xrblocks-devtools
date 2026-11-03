@@ -142,7 +142,7 @@ Options:
 | `--bg <color>`          | CSS background color. Defaults to `#f4f5f7`.                                                        |
 | `--views <preset>`      | Model/hand preset: `inspection-4`, `turntable-4`, or `front`.                                       |
 | `--assets-dir <path>`   | UI/model assets under `/assets/`; defaults to the module directory, or current directory for stdin. |
-| `--xrblocks-root <dir>` | UI/hand: XR Blocks checkout or package root to preview.                                             |
+| `--xrblocks-root <dir>` | UI: XR Blocks checkout or package root to preview.                                                  |
 
 For hands, `--pose`, `--hand`, and repeatable `--joint` select the pose as
 shown above. Use `xrblocks-devtools help visualize` for the installed CLI.

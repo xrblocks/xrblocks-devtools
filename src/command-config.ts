@@ -22,11 +22,22 @@ type CommandDefinition = {
   flags: readonly FlagDefinition[];
 };
 
-type CommandName = 'visualize' | 'interact' | 'agent' | 'test' | 'mcp';
+type CommandName =
+  | 'visualize'
+  | 'train-gestures'
+  | 'sample-gestures'
+  | 'test-gesture-model'
+  | 'interact'
+  | 'agent'
+  | 'test'
+  | 'mcp';
 
 type FlagValues = Record<string, string | number | boolean | string[]>;
 
 export type ParsedCommand =
+  | {kind: 'sample-gestures'; input: string}
+  | {kind: 'test-gesture-model'; model: string; input: string}
+  | {kind: 'train-gestures'; config: string; out: string}
   | {kind: 'mcp'; port: number}
   | {kind: 'help'; command?: CommandName; exitCode: number}
   | {
@@ -124,6 +135,35 @@ const recordingFlags = [
 ] as const;
 
 const definitions: Record<CommandName, CommandDefinition> = {
+  'sample-gestures': {
+    name: 'sample-gestures',
+    usage: 'sample-gestures <input.json>',
+    summary:
+      'Interpolate hand joint angles between two endpoints; print candidate poses and suggested labels as JSON.',
+    flags: [],
+  },
+  'test-gesture-model': {
+    name: 'test-gesture-model',
+    usage: 'test-gesture-model <model.tflite> <poses.json>',
+    summary:
+      'Batch-score poses using a Devtools TFLite model; print predictions and class scores as JSON.',
+    flags: [],
+  },
+  'train-gestures': {
+    name: 'train-gestures',
+    usage: 'train-gestures <config.json> -o <model.tflite>',
+    summary:
+      'Generate synthetic hand poses, train in Node, and export a TFLite gesture classifier.',
+    flags: [
+      flag(
+        'out',
+        'string',
+        'Write the model and companion JSON manifest',
+        'path',
+        'o'
+      ),
+    ],
+  },
   mcp: {
     name: 'mcp',
     usage: 'mcp [--port <port>]',
@@ -173,7 +213,7 @@ const definitions: Record<CommandName, CommandDefinition> = {
       flag(
         'xrblocks-root',
         'string',
-        'UI/hand: use an XR Blocks checkout/package root',
+        'UI: use an XR Blocks checkout/package root',
         'dir'
       ),
     ],
@@ -259,6 +299,28 @@ export function parseCommand(
   const parsed = parseArguments(definition, args);
   if (parsed.help) return {kind: 'help', command: name, exitCode: 0};
 
+  if (name === 'sample-gestures' || name === 'test-gesture-model') {
+    const expected = name === 'sample-gestures' ? 1 : 2;
+    if (parsed.positionals.length !== expected)
+      throw new Error(`Usage: xrblocks-devtools ${definition.usage}`);
+    return name === 'sample-gestures'
+      ? {kind: name, input: parsed.positionals[0]}
+      : {
+          kind: name,
+          model: parsed.positionals[0],
+          input: parsed.positionals[1],
+        };
+  }
+
+  if (name === 'train-gestures') {
+    const [config, ...extra] = parsed.positionals;
+    if (!config) throw new Error('Train-gestures requires a config JSON file.');
+    if (extra.length) throw new Error(`Unexpected argument: ${extra[0]}`);
+    const out = stringValue(parsed.flags, 'out');
+    if (!out) throw new Error('Train-gestures requires -o/--out.');
+    return {kind: name, config, out};
+  }
+
   if (name === 'visualize') {
     const [visualizeKind, target, ...extra] = parsed.positionals;
     if (
@@ -282,13 +344,8 @@ export function parseCommand(
     if (visualizeKind === 'ui' && parsed.flags.views !== undefined) {
       throw new Error('--views is only available for model and hand previews.');
     }
-    if (
-      visualizeKind === 'model' &&
-      parsed.flags['xrblocks-root'] !== undefined
-    ) {
-      throw new Error(
-        '--xrblocks-root is only available for UI and hand previews.'
-      );
+    if (visualizeKind !== 'ui' && parsed.flags['xrblocks-root'] !== undefined) {
+      throw new Error('--xrblocks-root is only available for UI previews.');
     }
     let handPreview: HandPreview | undefined;
     if (visualizeKind === 'hand') {

@@ -1,4 +1,10 @@
 import {
+  HAND_POSE_JOINT_NAMES,
+  type PhysicalHand,
+  type HandPoseRotations,
+  type NamedHandPose,
+} from '../hands/types.js';
+import {
   runSessionAct,
   type ActOptions,
   type ActResult,
@@ -11,15 +17,11 @@ import {
   type SessionRuntimePort,
 } from './runtime.js';
 import {
-  HAND_POSE_JOINT_NAMES,
   type AngularSpeedOptions,
   type BrowserDiagnostics,
   type EulerRotation,
-  type PhysicalHand,
-  type HandPoseRotations,
   type LinearMotion,
   type LinearSpeedOptions,
-  type NamedHandPose,
   type ObjectIdentity,
   type ObjectInspection,
   type SceneContextOptions,

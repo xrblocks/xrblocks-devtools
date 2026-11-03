@@ -3,6 +3,10 @@ import {realpathSync} from 'node:fs';
 import path from 'node:path';
 import {stdin} from 'node:process';
 import {fileURLToPath} from 'node:url';
+import {readFile} from 'node:fs/promises';
+import {trainGestures} from './gestures/train.js';
+import {sampleGestures} from './gestures/sample.js';
+import {testGestureModel} from './gestures/test-model.js';
 import {createAiModel} from './agent/ai.js';
 import {XRBlocksSession} from './session/index.js';
 import {commandHelp, parseCommand} from './command-config.js';
@@ -17,6 +21,31 @@ export async function main(argv = process.argv.slice(2), signal?: AbortSignal) {
   loadDotEnv();
   const command = parseCommand(argv, signal);
   switch (command.kind) {
+    case 'sample-gestures': {
+      const input = JSON.parse(await readFile(command.input, 'utf8'));
+      console.log(JSON.stringify(sampleGestures(input), null, 2));
+      return 0;
+    }
+    case 'test-gesture-model': {
+      const input = JSON.parse(await readFile(command.input, 'utf8'));
+      const result = await testGestureModel(
+        {
+          model: command.model,
+          poses: Array.isArray(input) ? input : input.poses,
+        },
+        signal
+      );
+      console.log(JSON.stringify(result, null, 2));
+      return 0;
+    }
+    case 'train-gestures': {
+      const config = JSON.parse(await readFile(command.config, 'utf8'));
+      const result = await trainGestures({config, out: command.out, signal});
+      for (const warning of result.warnings)
+        console.error(`Warning: ${warning}`);
+      console.log(JSON.stringify(result, null, 2));
+      return 0;
+    }
     case 'mcp': {
       const {runMcp} = await import('./mcp/index.js');
       await runMcp(command.port, signal);
@@ -45,7 +74,6 @@ export async function main(argv = process.argv.slice(2), signal?: AbortSignal) {
               kind: 'hand',
               ...command.handPreview,
               views: command.views,
-              xrblocksRoot: command.xrblocksRoot,
             })
           : await visualize({
               ...common,

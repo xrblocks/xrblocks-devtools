@@ -4,7 +4,7 @@ import {
   NAMED_HAND_POSES,
   type NamedHandPose,
   type PhysicalHand,
-} from '../session/types.js';
+} from '../hands/types.js';
 import {
   ANGULAR_SPEED,
   boundedSpeed,

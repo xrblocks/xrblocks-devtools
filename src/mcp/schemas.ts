@@ -1,5 +1,5 @@
 import * as z from 'zod/v4';
-import {HAND_POSE_JOINT_NAMES, NAMED_HAND_POSES} from '../session/types.js';
+import {HAND_POSE_JOINT_NAMES, NAMED_HAND_POSES} from '../hands/types.js';
 
 export const text = z.string().trim().min(1);
 export const jsonObject = z.record(z.string(), z.json());
@@ -176,7 +176,6 @@ export const preview = z.strictObject({
       rotations: rotations.optional(),
       hand: z.enum(['left', 'right', 'both']).optional(),
       views: views.optional(),
-      xrblocksRoot: text.optional(),
     }),
   ]),
   out: text.optional(),

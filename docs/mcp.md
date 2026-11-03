@@ -67,7 +67,13 @@ Ctrl-C or SIGTERM stops the MCP server and closes its sessions.
 | Audio       | `inject_audio`, `wait_for_audio_consumer`                                                                                           |
 | Objects     | `add_simulator_objects`, `update_simulator_objects`, `remove_simulator_objects`, `clear_simulator_objects`, `get_simulator_objects` |
 | Artifacts   | `save_set_of_mark`; `get_screenshot` with `out` replaces the REPL's `saveScreenshot` helper                                         |
+| Training    | `train_gestures`, `sample_gestures`, `test_gesture_model`                                                                           |
 | Previews    | `visualize`                                                                                                                         |
+
+`train_gestures` accepts `{config, out}` without a Session. `sample_gestures`
+interpolates hand angles between two endpoints; `test_gesture_model` accepts
+`{model, poses}` and returns batch predictions, all scores, and optional reviewed
+expectations. See [gesture training and evaluation](gestures.md).
 
 Every interaction tool requires `sessionId`. Targets accept exact unique names,
 world `[x,y,z]` coordinates in meters, or `{tag:"name"}`. Disambiguate duplicate

@@ -59,7 +59,8 @@ export async function visualize(
   options.signal?.addEventListener('abort', onAbort, {once: true});
   try {
     const runtime = await resolvePreviewRuntime(
-      options.kind !== 'model' ? options.xrblocksRoot : undefined
+      options.kind === 'ui',
+      options.kind === 'ui' ? options.xrblocksRoot : undefined
     );
     await mkdir(path.join(tempDir, 'runtime'), {recursive: true});
     await symlinkDir(runtime.threeDir, path.join(tempDir, 'runtime', 'three'));

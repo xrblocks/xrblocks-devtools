@@ -2,6 +2,9 @@ export const instructions = `XR Blocks Devtools provides isolated visual preview
 
 Choose the smallest workflow that answers the question:
 - visualize: appearance, layout, geometry, materials, framing, or hand poses in a still image.
+- train_gestures: generate a TFLite static hand-shape classifier from labeled hand configurations. Angle noise uses radians, keypoint noise uses meters. Include other poses for rejection. Synthetic validation does not measure real-hand accuracy.
+- sample_gestures: interpolate bone angles between hand poses. Review the rendered candidates before assigning labels, especially between different gestures. Suggested labels are not independent ground truth.
+- test_gesture_model: batch-score hand poses against a Devtools TFLite model. Inspect all class scores and top-two margins. Supply expected labels only for independently reviewed cases; null means the model should reject the pose. Compare results before retraining.
 - open_session and interaction tools: full app lifecycle, controller input, voice input, movement, runtime state, or integration behavior.
 
 Live app workflow:

@@ -12,15 +12,11 @@ export type {
   AngularSpeedOptions,
   BrowserDiagnostics,
   EulerRotation,
-  HandPoseJointName,
-  HandPoseRotations,
   LinearMotion,
   LinearSpeedOptions,
-  NamedHandPose,
   ObjectIdentity,
   ObjectInspection,
   ObjectTransform,
-  PhysicalHand,
   QuaternionTuple,
   SessionSimulator,
   SimulatorObjectInput,
@@ -43,3 +39,10 @@ export type {
   SessionRecordingOptions,
   VideoRecordingOptions,
 } from './recording.js';
+
+export type {
+  HandPoseJointName,
+  HandPoseRotations,
+  NamedHandPose,
+  PhysicalHand,
+} from '../hands/types.js';

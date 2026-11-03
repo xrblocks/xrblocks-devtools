@@ -4,13 +4,23 @@ import {requireDir, requireFile} from '../fs-utils.js';
 
 const require = createRequire(import.meta.url);
 
-export async function resolvePreviewRuntime(xrblocksRoot?: string) {
-  const xrblocksEntry = xrblocksRoot
-    ? path.resolve(xrblocksRoot, 'build', 'xrblocks.js')
-    : require.resolve('xrblocks');
-  await requireFile(xrblocksEntry, 'XR Blocks browser build');
-  const xrblocksDir = path.dirname(path.dirname(xrblocksEntry));
-  const threeEntry = require.resolve('three', {paths: [xrblocksDir]});
+export async function resolvePreviewRuntime(
+  ui: boolean,
+  xrblocksRoot?: string
+) {
+  const xrblocksEntry = !ui
+    ? undefined
+    : xrblocksRoot
+      ? path.resolve(xrblocksRoot, 'build', 'xrblocks.js')
+      : require.resolve('xrblocks');
+  if (xrblocksEntry)
+    await requireFile(xrblocksEntry, 'XR Blocks browser build');
+  const threeEntry = require.resolve(
+    'three',
+    xrblocksEntry
+      ? {paths: [path.dirname(path.dirname(xrblocksEntry))]}
+      : undefined
+  );
   const threeDir =
     path.basename(path.dirname(threeEntry)) === 'build'
       ? path.dirname(path.dirname(threeEntry))

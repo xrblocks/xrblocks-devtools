@@ -1,34 +1,26 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {
-  HAND_JOINT_NAMES,
-  Handedness,
-  SIMULATOR_HAND_POSE_ROTATIONS,
-  SimulatorHandPose,
-  resolveSimulatorHandPoseRotations,
-} from 'xrblocks';
+import {HAND_JOINT_NAMES} from '../../hands/types.js';
+import {HAND_POSES} from '../../hands/poses.js';
+import {resolveHandJoints} from '../../hands/kinematics.js';
 import './runtime.js';
 
 export default async function handPreview() {
   const options = window.__xrblocksVisualizerConfig.hand ?? {};
   const pose = options.pose ?? 'relaxed';
   const rotations = {
-    ...SIMULATOR_HAND_POSE_ROTATIONS[pose as SimulatorHandPose],
+    ...HAND_POSES[pose],
     ...options.rotations,
   };
   const sides =
     options.hand === 'left' || options.hand === 'right'
       ? [options.hand]
-      : ['left', 'right'];
+      : (['left', 'right'] as const);
   const loader = new GLTFLoader();
   const models = await Promise.all(
     sides.map(async (side) => {
       const {scene} = await loader.loadAsync(`/assets/${side}.glb`);
-      const joints = resolveSimulatorHandPoseRotations(
-        side === 'left' ? Handedness.LEFT : Handedness.RIGHT,
-        rotations,
-        false
-      );
+      const joints = resolveHandJoints(side, rotations, false);
       const wrist = new THREE.Vector3().fromArray(joints[0].t);
       HAND_JOINT_NAMES.forEach((name, index) => {
         const bone = scene.getObjectByName(name);

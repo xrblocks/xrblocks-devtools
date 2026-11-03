@@ -152,7 +152,7 @@ xrblocks-devtools visualize hand --pose <name> -o <out.png> [options]
 | `--bg <color>`          | CSS background color or `transparent`. Default `#f4f5f7`.                                          |
 | `--views <preset>`      | Model/hand: `inspection-4` (default), `turntable-4`, or `front`.                                   |
 | `--assets-dir <dir>`    | UI/model files below `/assets/`. Defaults to the module directory, or current directory for stdin. |
-| `--xrblocks-root <dir>` | UI/hand: XR Blocks package or checkout used for the preview.                                       |
+| `--xrblocks-root <dir>` | UI: XR Blocks package or checkout used for the preview.                                            |
 | `--pose <name>`         | Hand base pose; default `relaxed`.                                                                 |
 | `--joint <name=x,y,z>`  | Hand joint override in degrees; repeatable.                                                        |
 | `--hand <side>`         | Render `left`, `right`, or `both` (default).                                                       |
@@ -172,6 +172,21 @@ export default function preview({xb}) {
 
 The result is `{out, warnings}`. UI warnings also print to stderr. See
 [docs/visualize.md](docs/visualize.md).
+
+### Train gestures
+
+```sh
+xrblocks-devtools train-gestures examples/gestures/grab-select.json \
+  -o artifacts/gestures/grab-select.tflite
+```
+
+Generates noisy hand poses, trains a static hand-shape classifier in Node, and
+writes a standard TFLite model plus its JSON manifest. Hand math is shared with
+`visualize hand`.
+
+Use `sample-gestures <input.json>` to interpolate bone angles between two poses,
+then `test-gesture-model <model.tflite> <poses.json>` for batch predictions and
+all class scores. 
 
 ### Interact
 
@@ -872,6 +887,9 @@ JavaScript/TypeScript libraries and REST calls) can be extracted.
   render-and-inspect loop.
 - [`interact-with-xrblocks`](skills/interact-with-xrblocks/SKILL.md) runs an
   observe-act-verify loop through the manual REPL.
+- [`author-xrblocks-gestures`](skills/author-xrblocks-gestures/SKILL.md) authors
+  positive and background hand poses, trains TFLite models, and evaluates misses
+  and false detections.
 
 The npm package contains these skill folders. Agent hosts must expose or install
 them through their normal skill-discovery mechanism.

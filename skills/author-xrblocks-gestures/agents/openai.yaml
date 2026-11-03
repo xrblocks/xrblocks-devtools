@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Author XR Blocks Gestures'
+  short_description: 'Author and evaluate hand gesture TFLite models'
+  default_prompt: 'Use $author-xrblocks-gestures to author positive and background hand poses, train a small TFLite model, and evaluate its misses and false detections.'

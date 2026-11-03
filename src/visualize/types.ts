@@ -2,7 +2,7 @@ import type {
   HandPoseRotations,
   NamedHandPose,
   PhysicalHand,
-} from '../session/types.js';
+} from '../hands/types.js';
 
 export type VisualizeKind = 'ui' | 'model' | 'hand';
 export type ViewPreset = 'inspection-4' | 'turntable-4' | 'front';
@@ -39,7 +39,6 @@ export type HandVisualizeRequest = VisualizeRequestBase &
   HandPreview & {
     kind: 'hand';
     views?: ViewPreset;
-    xrblocksRoot?: string;
   };
 
 export type VisualizeRequest =

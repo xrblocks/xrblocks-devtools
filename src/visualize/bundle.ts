@@ -26,7 +26,7 @@ const xrblocksOptionalImports = [
 export async function bundlePreviewEntry(options: {
   kind: VisualizeKind;
   previewPath: string;
-  xrblocksEntry: string;
+  xrblocksEntry?: string;
   outfile: string;
 }) {
   await build({
@@ -47,9 +47,11 @@ export async function bundlePreviewEntry(options: {
           build.onResolve({filter: /^virtual:preview$/}, () => ({
             path: options.previewPath,
           }));
-          build.onResolve({filter: /^xrblocks$/}, () => ({
-            path: options.xrblocksEntry,
-          }));
+          if (options.xrblocksEntry) {
+            build.onResolve({filter: /^xrblocks$/}, () => ({
+              path: options.xrblocksEntry!,
+            }));
+          }
         },
       },
     ],

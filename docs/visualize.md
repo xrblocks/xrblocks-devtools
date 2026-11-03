@@ -78,7 +78,8 @@ xrblocks-devtools visualize hand --pose relaxed \
 `--hand` selects `left`, `right`, or `both` (default). `--pose` accepts `neutral`,
 `relaxed`, `pinching`, `fist`, `thumbs_up`, `pointing`, `rock`, `thumbs_down`, or
 `victory`. `--views` supports the same presets as model previews. No preview
-module is needed. Use `--xrblocks-root` to select the SDK checkout.
+module is needed. Hand math and pose definitions are local to Devtools; no XR Blocks
+installation is needed for hand previews. `--xrblocks-root` applies only to UI previews.
 
 Repeat `--joint name=x,y,z` for different joints. CLI angles are in degrees;
 JavaScript `visualize({kind: 'hand', rotations, ...})` and Session `setHandPose`

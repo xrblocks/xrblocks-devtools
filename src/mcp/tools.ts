@@ -5,6 +5,14 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import type {XRBlocksSession} from '../session/index.js';
 import {visualize} from '../visualize/index.js';
+import {trainGestures} from '../gestures/train.js';
+import {
+  gestureTrainingSchema,
+  sampleGesturesSchema,
+  testGestureModelSchema,
+} from '../gestures/schema.js';
+import {sampleGestures} from '../gestures/sample.js';
+import {testGestureModel} from '../gestures/test-model.js';
 import {Sessions} from './sessions.js';
 import {saveImage, toolResult} from './results.js';
 import * as s from './schemas.js';
@@ -437,6 +445,26 @@ export function createTools(sessions: Sessions, signal: AbortSignal) {
         if (directory) await rm(directory, {recursive: true, force: true});
       }
     }
+  );
+  tool(
+    'sample_gestures',
+    'Interpolate semantic bone angles between two hand poses. Returns a batch of poses with anatomical limits applied and interpolation provenance. Same-label endpoint labels are suggestions for intermediate poses; cross-label intermediates are unlabeled. Inspect candidates with visualize before assigning expected labels or adding them to training. Pass the returned poses directly to test_gesture_model.',
+    sampleGesturesSchema,
+    (input) => sampleGestures(input),
+    true
+  );
+  tool(
+    'test_gesture_model',
+    'Batch-score poses against a Devtools-exported .tflite model in Node. Reads labels and threshold from embedded metadata; no companion manifest, browser, or XR Session is needed. Supports the fixed fully-connected/softmax hand model exported by Devtools. Returns all class scores, top-two margin, best match, and accepted prediction for each hand. Optional independently reviewed expected labels enable accuracy reporting; null or other means rejection. Suggested interpolation labels are never treated as expected labels.',
+    testGestureModelSchema,
+    (input) => testGestureModel(input, signal),
+    true
+  );
+  tool(
+    'train_gestures',
+    'Train a static hand gesture classifier from named poses and joint rotations in radians. Generates synthetic articulation and keypoint noise in Node, then writes a .tflite file and companion JSON manifest. Include an other class for background poses. Returns synthetic validation diagnostics; real tracking needs separate validation.',
+    z.strictObject({config: gestureTrainingSchema, out: s.text}),
+    ({config, out}) => trainGestures({config, out, signal})
   );
   return server;
 }

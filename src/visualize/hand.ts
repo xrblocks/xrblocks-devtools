@@ -3,8 +3,8 @@ import {randomUUID} from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {HAND_POSE_JOINT_NAMES, NAMED_HAND_POSES} from '../session/types.js';
-import type {HandPoseJointName, HandPoseRotations} from '../session/types.js';
+import {HAND_POSE_JOINT_NAMES, NAMED_HAND_POSES} from '../hands/types.js';
+import type {HandPoseJointName, HandPoseRotations} from '../hands/types.js';
 import type {HandPreview, NormalizedPreviewInput} from './types.js';
 
 export function parseHandJoints(values: string[]): HandPoseRotations {

@@ -24,15 +24,11 @@ export type {
   ObjectIdentity,
   ObjectInspection,
   ObjectTransform,
-  PhysicalHand,
   QuaternionTuple,
   Vec3Tuple,
   EulerRotation,
-  HandPoseJointName,
-  HandPoseRotations,
   LinearMotion,
   LinearSpeedOptions,
-  NamedHandPose,
 } from './session/index.js';
 export type {
   ActEvent,
@@ -45,6 +41,16 @@ export type {
 export type {ActArtifacts} from './agent/artifacts.js';
 export type {AgentToolProfile} from './agent/actions.js';
 export {visualize} from './visualize/index.js';
+export {trainGestures} from './gestures/train.js';
+export {sampleGestures} from './gestures/sample.js';
+export {testGestureModel} from './gestures/test-model.js';
+export type {
+  GestureTrainingConfig,
+  GestureManifest,
+  SampleGesturesRequest,
+  TestGestureModelRequest,
+  GestureTestPose,
+} from './gestures/schema.js';
 export type {
   HandPreview,
   HandVisualizeRequest,
@@ -55,3 +61,10 @@ export type {
   VisualizeRequest,
   VisualizeResult,
 } from './visualize/types.js';
+
+export type {
+  HandPoseJointName,
+  HandPoseRotations,
+  NamedHandPose,
+  PhysicalHand,
+} from './hands/types.js';

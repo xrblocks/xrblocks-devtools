@@ -1,0 +1,104 @@
+{
+  "dataset": "../evaluation.json",
+  "scope": "Development checks used while improving examples; not an independent accuracy estimate.",
+  "before": {
+    "total": 74,
+    "correct": 64,
+    "accuracy": 0.8648648648648649,
+    "threshold": 0.8
+  },
+  "after": {
+    "total": 74,
+    "correct": 72,
+    "accuracy": 0.972972972972973,
+    "threshold": 0.6
+  },
+  "authoredPoses": {
+    "total": 80,
+    "correct": 80,
+    "accuracy": 1,
+    "rejected": []
+  },
+  "training": {
+    "samplesPerPose": 75,
+    "trainingSamples": 4800,
+    "validationSamples": 1200,
+    "elapsedSeconds": 14.585064372,
+    "syntheticValidation": {
+      "accuracy": 0.9983333333333333,
+      "rejected": 2,
+      "confusion": [
+        [120, 0, 0, 0, 0, 0, 0, 0],
+        [0, 180, 0, 0, 0, 0, 0, 0],
+        [0, 0, 120, 0, 0, 0, 0, 0],
+        [0, 0, 0, 120, 0, 0, 0, 0],
+        [0, 0, 0, 0, 120, 0, 0, 0],
+        [0, 0, 0, 0, 0, 120, 0, 0],
+        [0, 0, 0, 0, 0, 0, 300, 0],
+        [0, 0, 0, 0, 0, 0, 0, 120]
+      ]
+    }
+  },
+  "fourRegressions": [
+    {
+      "id": "four-regression-fingers-together",
+      "before": 0.791606999012307,
+      "after": 0.9644052815781049,
+      "prediction": "four"
+    },
+    {
+      "id": "four-regression-relaxed-thumb",
+      "before": 0.7579563998948967,
+      "after": 0.9164196552696429,
+      "prediction": "four"
+    },
+    {
+      "id": "four-regression-together-relaxed-thumb",
+      "before": 0.3032679265202513,
+      "after": 0.906570348062934,
+      "prediction": "four"
+    }
+  ],
+  "failures": [
+    {
+      "id": "background-thumb-only",
+      "hand": "left",
+      "prediction": "shaka",
+      "bestMatch": "shaka",
+      "score": 0.6034300435264525,
+      "margin": 0.20952596964676906,
+      "scores": {
+        "shaka": 0.6034300435264525,
+        "grab": 0.3939040738796834,
+        "point": 0.0018249954096133136,
+        "other": 0.0005557444385447438,
+        "peace": 0.0001934393734209147,
+        "select": 0.00006990510670530705,
+        "three": 0.000021762058583198472,
+        "four": 3.620699670956546e-8
+      },
+      "expected": null,
+      "correct": false
+    },
+    {
+      "id": "background-thumb-only",
+      "hand": "right",
+      "prediction": "shaka",
+      "bestMatch": "shaka",
+      "score": 0.6034300435264525,
+      "margin": 0.20952596964676906,
+      "scores": {
+        "shaka": 0.6034300435264525,
+        "grab": 0.3939040738796834,
+        "point": 0.0018249954096133136,
+        "other": 0.0005557444385447438,
+        "peace": 0.0001934393734209147,
+        "select": 0.00006990510670530705,
+        "three": 0.000021762058583198472,
+        "four": 3.620699670956546e-8
+      },
+      "expected": null,
+      "correct": false
+    }
+  ]
+}
