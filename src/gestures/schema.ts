@@ -18,6 +18,7 @@ const label = z
     'Reserved label.'
   );
 const angles = z.tuple([z.number(), z.number(), z.number()]);
+const features = z.enum(['palm-local-xyz-v1', 'relative-bone-angles-v1']);
 export const gesturePoseSchema = z.strictObject({
   pose: z.enum(NAMED_HAND_POSES).default('neutral'),
   rotations: z.partialRecord(z.enum(HAND_POSE_JOINT_NAMES), angles).default({}),
@@ -54,6 +55,7 @@ export type GestureTestPose = z.input<typeof gestureTestPoseSchema>;
 export type TestGestureModelRequest = z.input<typeof testGestureModelSchema>;
 export const gestureTrainingSchema = z
   .strictObject({
+    features: features.default('palm-local-xyz-v1'),
     seed: z.number().int().min(0).max(0xffffffff).default(42),
     samplesPerPose: z.number().int().min(2).max(2000).default(250),
     angleStddevRadians: z.number().min(0).max(0.5).default(0.08),
@@ -85,7 +87,7 @@ export type ResolvedTrainingConfig = z.output<typeof gestureTrainingSchema>;
 export const gestureManifestSchema = z.strictObject({
   format: z.literal('xrblocks-hand-gestures'),
   version: z.literal(1),
-  features: z.literal('palm-local-xyz-v1'),
+  features,
   joints: z
     .array(z.string())
     .refine(

@@ -49,7 +49,7 @@ export async function testGestureModel(
       const points = resolveHandJoints(hand, rotations).map(({t}) =>
         new Vector3().fromArray(t)
       );
-      const features = handFeatures(points, hand);
+      const features = handFeatures(points, hand, manifest.features);
       if (!features) throw new Error(`Degenerate hand in ${ids[index]}.`);
       const scores = predictFeatures(classifier, features);
       const ranked = manifest.labels

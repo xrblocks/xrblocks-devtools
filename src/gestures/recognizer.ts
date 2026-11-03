@@ -2,7 +2,7 @@ import {loadAndCompile, Tensor} from '@litertjs/core';
 import type {CompiledModel} from '@litertjs/core';
 import {HAND_JOINT_NAMES} from '../hands/types.js';
 import type {HandJointName, PhysicalHand} from '../hands/types.js';
-import {HAND_FEATURE_SIZE, handFeatures} from './features.js';
+import {HAND_FEATURE_SIZES, handFeatures} from './features.js';
 import type {HandPoint} from './features.js';
 import {gestureManifestSchema} from './schema.js';
 import type {GestureManifest} from './schema.js';
@@ -42,7 +42,7 @@ export class TFLiteGestureRecognizer {
         inputs[0].dtype !== 'float32' ||
         outputs[0].dtype !== 'float32' ||
         JSON.stringify(Array.from(inputs[0].shape)) !==
-          JSON.stringify([1, HAND_FEATURE_SIZE]) ||
+          JSON.stringify([1, HAND_FEATURE_SIZES[manifest.features]]) ||
         JSON.stringify(Array.from(outputs[0].shape)) !==
           JSON.stringify([1, manifest.labels.length])
       ) {
@@ -73,11 +73,11 @@ export class TFLiteGestureRecognizer {
       return Promise.reject(new Error('Gesture recognizer is disposed.'));
     const points = HAND_JOINT_NAMES.map((name) => context.getJoint(name));
     const features = points.every((point) => point !== undefined)
-      ? handFeatures(points, context.handLabel)
+      ? handFeatures(points, context.handLabel, this.manifest.features)
       : null;
     if (!features) return Promise.resolve({});
     const run = this.pending.then(async () => {
-      const input = new Tensor(features, [1, HAND_FEATURE_SIZE]);
+      const input = new Tensor(features, [1, features.length]);
       let outputs: Tensor[] = [];
       try {
         outputs = await this.model.run([input]);
@@ -109,6 +109,6 @@ export class TFLiteGestureRecognizer {
   }
 }
 
-export {handFeatures, HAND_FEATURE_SIZE} from './features.js';
-export type {HandPoint} from './features.js';
+export {handFeatures, HAND_FEATURE_SIZES} from './features.js';
+export type {HandPoint, HandFeatureFormat} from './features.js';
 export type {GestureManifest} from './schema.js';

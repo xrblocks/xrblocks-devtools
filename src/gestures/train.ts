@@ -36,7 +36,7 @@ export async function trainGestures(options: {
   const manifest: GestureManifest = {
     format: 'xrblocks-hand-gestures',
     version: 1,
-    features: 'palm-local-xyz-v1',
+    features: config.features,
     joints: [...HAND_JOINT_NAMES],
     labels,
     threshold: config.threshold,

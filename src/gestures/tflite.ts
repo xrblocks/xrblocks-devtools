@@ -1,5 +1,5 @@
 import {Builder} from 'flatbuffers';
-import {HAND_FEATURE_SIZE} from './features.js';
+import {HAND_FEATURE_SIZES} from './features.js';
 import type {GestureClassifier} from './classifier.js';
 import type {GestureManifest} from './schema.js';
 import {gestureManifestSchema} from './schema.js';
@@ -10,6 +10,7 @@ export function encodeTFLite(
   model: GestureClassifier,
   manifest: GestureManifest
 ) {
+  const dimensions = HAND_FEATURE_SIZES[manifest.features];
   const builder = new Builder(4096);
   const table = (size: number, fields: Field[] = []) => {
     builder.startObject(size);
@@ -60,10 +61,10 @@ export function encodeTFLite(
     return tensors.length - 1;
   };
   const classes = manifest.labels.length;
-  const features = tensor('features', [1, HAND_FEATURE_SIZE]);
+  const features = tensor('features', [1, dimensions]);
   const weights = tensor(
     'weights',
-    [classes, HAND_FEATURE_SIZE],
+    [classes, dimensions],
     model.weights.flatMap((row) => Array.from(row))
   );
   const bias = tensor('bias', [classes], Array.from(model.bias));
@@ -187,7 +188,7 @@ export function decodeTFLite(bytes: Uint8Array) {
     });
   };
   const numbers = (table: number, slot: number) => {
-    const {start, length} = vector(table, slot, 4, HAND_FEATURE_SIZE);
+    const {start, length} = vector(table, slot, 4, 16);
     return Array.from({length}, (_, index) => i32(start + index * 4));
   };
   const data = (table: number, slot: number) => {
@@ -230,6 +231,7 @@ export function decodeTFLite(bytes: Uint8Array) {
   const manifest = gestureManifestSchema.parse(
     JSON.parse(string(metadataBuffer, 0))
   );
+  const dimensions = HAND_FEATURE_SIZES[manifest.features];
   const graphs = tables(root, 2, 1);
   if (graphs.length !== 1) throw invalid();
   const graph = graphs[0];
@@ -286,8 +288,8 @@ export function decodeTFLite(bytes: Uint8Array) {
   if (!beta || view.getFloat32(beta, true) !== 1) throw invalid();
   const classes = manifest.labels.length;
   const shapes = [
-    [1, HAND_FEATURE_SIZE],
-    [classes, HAND_FEATURE_SIZE],
+    [1, dimensions],
+    [classes, dimensions],
     [classes],
     [1, classes],
     [1, classes],
@@ -325,10 +327,10 @@ export function decodeTFLite(bytes: Uint8Array) {
     if (!result.every(Number.isFinite)) throw invalid();
     return result;
   };
-  const weights = floats(tensors[1], classes * HAND_FEATURE_SIZE);
+  const weights = floats(tensors[1], classes * dimensions);
   const classifier: GestureClassifier = {
     weights: manifest.labels.map((_, index) =>
-      weights.slice(index * HAND_FEATURE_SIZE, (index + 1) * HAND_FEATURE_SIZE)
+      weights.slice(index * dimensions, (index + 1) * dimensions)
     ),
     bias: floats(tensors[2], classes),
   };

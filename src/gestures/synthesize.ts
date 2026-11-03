@@ -82,7 +82,7 @@ export async function synthesize(
             }
             return point;
           });
-          const features = handFeatures(points, hand);
+          const features = handFeatures(points, hand, config.features);
           if (!features)
             throw new Error(
               `Degenerate hand in ${label}[${configuration}]. Reduce noise or fix the base pose.`

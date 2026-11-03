@@ -1,4 +1,3 @@
-import {HAND_FEATURE_SIZE} from './features.js';
 import type {GestureSample} from './synthesize.js';
 
 export type GestureClassifier = {weights: Float32Array[]; bias: Float32Array};
@@ -22,7 +21,7 @@ export async function fitClassifier(
   classes: number,
   signal?: AbortSignal
 ): Promise<GestureClassifier> {
-  const dimensions = HAND_FEATURE_SIZE;
+  const dimensions = samples[0].features.length;
   const mean = new Float64Array(dimensions);
   const scale = new Float64Array(dimensions);
   const counts = new Float64Array(classes);

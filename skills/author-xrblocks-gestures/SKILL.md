@@ -14,7 +14,7 @@ datasets and tools. Training and batch testing run in Node without a browser or
 
 Describe which finger curls, spread, thumb positions, and contacts define each
 label, and which variations should retain it. This classifier recognizes static
-shapes: palm normalization removes world position, rotation, and uniform scale.
+shapes: both feature formats remove world position, rotation, and uniform scale.
 It cannot distinguish thumbs-up from thumbs-down by orientation or recognize
 motion sequences.
 
@@ -78,6 +78,14 @@ Prefer examples covering a missing variation over more perturbations of one pose
 
 Use MCP `train_gestures({config, out})`, with `out` ending in `.tflite`.
 The configuration contains `gestures` and optional generation settings.
+Choose `features: "palm-local-xyz-v1"` (default) for 75 palm-normalized joint
+coordinates, or `features: "relative-bone-angles-v1"` for the 14 bend cosines
+returned by XR Blocks' `getRelativeBoneAngles`. Palm coordinates retain finger
+spread and fingertip placement but depend on bone proportions. Bone angles remove
+individual lengths but omit contact distances and between-finger spread. Keep the
+same poses and settings when comparing formats; judge them on the task's cases.
+Authoring rotations remain radians in both modes. The model manifest controls
+feature selection automatically during batch testing and runtime inference.
 For a small first run, explicitly set `samplesPerPose: 75`; the tool default is 250. Total samples are `2 × samplesPerPose × number of configurations`, including
 `other` and both hands. Forty configurations at 75 produce 6,000 samples.
 

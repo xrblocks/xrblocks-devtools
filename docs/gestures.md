@@ -24,6 +24,7 @@ It does not start Playwright, download hand meshes, import XR Blocks, or use
 
 ```json
 {
+  "features": "palm-local-xyz-v1",
   "seed": 42,
   "samplesPerPose": 250,
   "angleStddevRadians": 0.08,
@@ -51,6 +52,20 @@ radians and the visualizer's anatomical XYZ axes. Labels must be unique,
 nonempty strings. `other` is a background class suppressed by the runtime adapter.
 Include several unrelated background shapes and several configurations per target
 gesture where possible.
+
+Choose one of two feature formats with `features`:
+
+| Value                         | Input                                                                      | Use                                                                                                         |
+| ----------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `palm-local-xyz-v1` (default) | 75 palm-normalized joint coordinates                                       | Retains fingertip placement and finger spread; individual bone proportions remain                           |
+| `relative-bone-angles-v1`     | 14 adjacent-bone dot products, in XR Blocks' `getRelativeBoneAngles` order | Removes individual bone lengths; measures finger bends without fingertip distances or between-finger spread |
+
+The angle values are cosines, not Euler angles or radians. Authoring rotations
+and augmentation remain in radians for either format. The manifest records the
+selected format, and batch testing and runtime loading select it automatically.
+Angle models use the same feature values as XR Blocks, but consumers must still
+use this model's tensor shape and label order rather than assuming the older
+`xr_emoji` sample's shape or labels. Training remains independent of the SDK.
 
 Generation includes both hands. `samplesPerPose` is the total per configuration
 per hand, including one unmodified, anatomically constrained base pose. Finger
@@ -182,7 +197,8 @@ options.gestures.enableGestures();
 ```
 
 The adapter implements the existing `GestureRecognizer` interface. It reads all
-25 world-space joint positions from `HandContext`, normalizes them, and runs the
+25 world-space joint positions from `HandContext`, extracts the manifest's
+selected features, and runs the
 model on LiteRT's WASM CPU backend. It returns only the winning gesture, provided
 its score reaches the threshold and its label is not `other`. Missing, non-finite,
 or degenerate tracking produces no gesture. Scores are softmax scores rather than
@@ -195,33 +211,38 @@ core changes or `interactive-ml` imports are required.
 ## Model contract
 
 The manifest defines `format: "xrblocks-hand-gestures"`, version `1`, feature
-schema `palm-local-xyz-v1`, ordered joint names and labels, and the threshold. The
-same manifest is embedded as custom `xrblocks-hand-gestures` TFLite metadata.
+schema `palm-local-xyz-v1` or `relative-bone-angles-v1`, ordered joint names and
+labels, and the threshold. The same manifest is embedded as custom
+`xrblocks-hand-gestures` TFLite metadata.
 
-| Tensor     | Type and shape                            |
-| ---------- | ----------------------------------------- |
-| `features` | float32 `[1, 75]`                         |
-| `scores`   | float32 `[1, C]`, in manifest label order |
+| Tensor     | Type and shape                                                    |
+| ---------- | ----------------------------------------------------------------- |
+| `features` | float32 `[1, D]`: D = 75 for palm coordinates, 14 for bone angles |
+| `scores`   | float32 `[1, C]`, in manifest label order                         |
 
 The `serving_default` signature exposes these tensors. The graph uses the standard
 TFLite fully connected and softmax operations. Training standardization is folded
-into the exported weights and bias. Palm feature extraction and thresholding live
+into the exported weights and bias. Feature extraction and thresholding live
 outside the graph.
 
-The browser entry exports `handFeatures(points, hand)` for other runtimes. Points
-must be `{x, y, z}` objects in manifest joint order. Coordinates are translated by
-the wrist, divided by proximal index-to-pinky palm width, and projected onto
+The browser entry exports `handFeatures(points, hand, format)` and
+`HAND_FEATURE_SIZES` for other runtimes. `format` defaults to
+`palm-local-xyz-v1`; pass `manifest.features` when processing a loaded model.
+Points must be `{x, y, z}` objects in manifest joint order. For palm features,
+coordinates are translated by the wrist, divided by proximal index-to-pinky palm
+width, and projected onto
 anatomical palm axes with handedness correction. The wrist contributes three
 zeros. Global rotation, position, and uniform scale are removed. Consequently,
-this model does not distinguish shapes by world orientation, such as thumbs-up
-versus thumbs-down, or recognize motion sequences.
+neither format distinguishes shapes by world orientation, such as thumbs-up
+versus thumbs-down. Neither recognizes motion sequences.
 
 ## Verification and source
 
 Run `npm run check:gestures` for an assert-based end-to-end check. It checks
-validation, cancellation, determinism, coordinate invariance, JS/TFLite agreement,
-the runtime adapter, and actual mesh previews. Artifacts are saved under
-`artifacts/gesture-check/`. Chromium must be installed for the inference and
+validation, cancellation, determinism, coordinate invariance, both feature formats,
+angle parity with XR Blocks, JS/TFLite agreement, the runtime adapter, and actual
+mesh previews. Artifacts are saved under `artifacts/gesture-check/`.
+Chromium must be installed for the inference and
 preview checks; training itself requires no browser.
 
 Hand skeleton calibration, named poses, anatomical constraints, and forward

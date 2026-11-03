@@ -462,7 +462,7 @@ export function createTools(sessions: Sessions, signal: AbortSignal) {
   );
   tool(
     'train_gestures',
-    'Train a static hand gesture classifier from named poses and joint rotations in radians. Generates synthetic articulation and keypoint noise in Node, then writes a .tflite file and companion JSON manifest. Include an other class for background poses. Returns synthetic validation diagnostics; real tracking needs separate validation.',
+    'Train a static hand gesture classifier from named poses and joint rotations in radians. Choose config.features: palm-local-xyz-v1 (default, 75 coordinates) or relative-bone-angles-v1 (14 XRBlocks bend cosines). Generates synthetic articulation and keypoint noise in Node, then writes a .tflite file and companion JSON manifest. Include an other class for background poses. Returns synthetic validation diagnostics; real tracking needs separate validation.',
     z.strictObject({config: gestureTrainingSchema, out: s.text}),
     ({config, out}) => trainGestures({config, out, signal})
   );

@@ -36,6 +36,35 @@ node dist/cli.js train-gestures examples/gestures/grab-select.json \
 ```
 
 The generated model and companion label/feature manifest are in `models/`.
+`grab-select.tflite` uses `palm-local-xyz-v1`, the default. The additional
+`grab-select-bone-angles.tflite` uses `relative-bone-angles-v1` with the same
+authored poses, 6,000 samples, augmentations, seed, and 60% threshold. Its
+companion manifest is `grab-select-bone-angles.json`. Reproduce it with:
+
+```sh
+node --input-type=module <<'EOF'
+import {readFile} from 'node:fs/promises';
+import {trainGestures} from './dist/gestures/train.js';
+const config = JSON.parse(await readFile('examples/gestures/grab-select.json', 'utf8'));
+await trainGestures({
+  config: {...config, features: 'relative-bone-angles-v1'},
+  out: 'examples/gestures/models/grab-select-bone-angles.tflite',
+});
+EOF
+```
+
+The angle model is 2,272 bytes and took about 2.6 seconds to generate and train.
+It passes 66/74 development hand cases, compared with 72/74 for palm coordinates;
+74/80 authored hand cases pass. Its synthetic validation acceptance is 90.0%.
+See `models/grab-select-bone-angles.evaluation.json` for settings and failures.
+It is byte-identical to the angle model checked through LiteRT and the SDK demo.
+
+The tester and demo read the feature format from the manifest. Load the angle
+model and its manifest together using **Load model + manifest**. Bone angles
+match XR Blocks' `getRelativeBoneAngles` values, while omitting fingertip
+distances and between-finger spread. These development results are not an
+independent accuracy estimate; real tracked hands have not been evaluated.
+
 `interpolate-four-three.json` supplies endpoints for `sample-gestures`:
 
 ```sh

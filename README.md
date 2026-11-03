@@ -184,6 +184,11 @@ Generates noisy hand poses, trains a static hand-shape classifier in Node, and
 writes a standard TFLite model plus its JSON manifest. Hand math is shared with
 `visualize hand`.
 
+Set `features` in the training configuration to `palm-local-xyz-v1` (default,
+75 normalized coordinates) or `relative-bone-angles-v1` (14 XR Blocks bend
+cosines). The model manifest selects the feature format for testing and runtime
+inference. See [gesture training](docs/gestures.md).
+
 Use `sample-gestures <input.json>` to interpolate bone angles between two poses,
 then `test-gesture-model <model.tflite> <poses.json>` for batch predictions and
 all class scores. 
